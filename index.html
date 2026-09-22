@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La brecha del peatón — Proyecto InfoVis</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:        #f9f9f7;
+    --surface-1:   #fcfcfb;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --c-context:    #2a78d6;  /* fallecidos por atropello — contexto que mejora */
+    --c-hero:       #eb6834;  /* % imprudencia del peatón — el hallazgo */
+    --c-hypothesis: #4a3aa7;  /* penetración móvil — hipótesis, no prueba */
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--text-primary);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .page { max-width: 980px; margin: 0 auto; padding: 40px 24px 80px; }
+  header.hero { margin-bottom: 36px; }
+  .kicker {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+  }
+  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 12px; max-width: 42ch; }
+  h1 .accent { color: var(--c-hero); }
+  .lede { font-size: 1.08rem; color: var(--text-secondary); max-width: 62ch; margin: 0 0 8px; }
+  .lede strong { color: var(--text-primary); }
+  .caveat {
+    font-size: 0.88rem; color: var(--text-muted); max-width: 62ch;
+    border-left: 3px solid var(--baseline); padding: 6px 0 6px 12px; margin-top: 14px;
+  }
+
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 18px; margin: 0 0 22px;
+  }
+  .controls .slider-wrap { display: flex; align-items: center; gap: 10px; flex: 1 1 260px; min-width: 220px; }
+  .controls input[type=range] { flex: 1; accent-color: var(--c-hero); }
+  .year-badge {
+    font-variant-numeric: tabular-nums; font-weight: 700; min-width: 3.2em; text-align: right;
+  }
+  button#play-btn {
+    font: inherit; font-weight: 700; padding: 8px 16px; border-radius: 999px;
+    border: 1.5px solid var(--text-primary); background: var(--text-primary); color: var(--surface-1);
+    cursor: pointer;
+  }
+  button#play-btn:hover { opacity: 0.85; }
+  button#play-btn[aria-pressed="true"] { background: var(--c-hero); border-color: var(--c-hero); }
+
+  .details-panel {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px 20px; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 28px;
+  }
+  .detail dt { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px; }
+  .detail dd { margin: 0; font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .detail.hero dd { color: var(--c-hero); }
+
+  .charts { display: flex; flex-direction: column; gap: 26px; }
+  .chart-card {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 18px 6px;
+  }
+  .chart-card h2 { font-size: 1.02rem; margin: 0 0 2px; }
+  .chart-card .delta { font-size: 0.86rem; color: var(--text-secondary); margin: 0 0 6px; }
+  .chart-card .delta strong { font-variant-numeric: tabular-nums; }
+  .chart-card.hero { border-color: color-mix(in srgb, var(--c-hero) 35%, var(--border)); }
+  .plot { width: 100%; height: 220px; }
+
+  details.table-view { margin-top: 30px; }
+  details.table-view summary {
+    cursor: pointer; font-weight: 700; color: var(--text-secondary); padding: 6px 0;
+  }
+  table.data-table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 0.88rem; }
+  table.data-table th, table.data-table td {
+    border: 1px solid var(--gridline); padding: 6px 10px; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  table.data-table th:first-child, table.data-table td:first-child { text-align: left; }
+  table.data-table th { background: var(--page); color: var(--text-secondary); font-weight: 700; }
+
+  footer.source {
+    margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--gridline);
+    font-size: 0.82rem; color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="hero">
+    <div class="kicker">Proyecto InfoVis · V1</div>
+    <h1>Chile hizo más seguro casi todo en el tránsito — <span class="accent">menos al peatón</span></h1>
+    <p class="lede">
+      Entre 2000 y 2025 los fallecidos por atropello cayeron <strong>a la mitad</strong>,
+      pero la <strong>imprudencia del peatón</strong> pasó de explicar el 59&nbsp;% de esas
+      muertes al 71&nbsp;%. El único factor que no mejoró es el peatón mismo — justo en
+      los años en que el celular se volvió omnipresente.
+    </p>
+    <p class="caveat">
+      Esto es una <strong>correlación temporal</strong>, no una prueba: la curva de
+      telefonía móvil se muestra como hipótesis a explorar, en su propio gráfico y su
+      propia escala — nunca superpuesta a la de accidentes.
+    </p>
+  </header>
+
+  <div class="controls">
+    <div class="slider-wrap">
+      <label for="year-slider" style="font-size:0.85rem;color:var(--text-secondary)">Año</label>
+      <input type="range" id="year-slider" min="2000" max="2025" step="1" value="2000">
+      <span class="year-badge" id="year-badge">2000</span>
+    </div>
+    <button id="play-btn" type="button" aria-pressed="false">▶ Reproducir cronología</button>
+  </div>
+
+  <dl class="details-panel" id="details-panel" aria-live="polite">
+    <div class="detail">
+      <dt>Penetración móvil</dt>
+      <dd id="d-penetracion">—</dd>
+    </div>
+    <div class="detail">
+      <dt>Fallecidos por atropello</dt>
+      <dd id="d-fallecidos">—</dd>
+    </div>
+    <div class="detail hero">
+      <dt>% por imprudencia del peatón</dt>
+      <dd id="d-share">—</dd>
+    </div>
+  </dl>
+
+  <div class="charts">
+    <div class="chart-card">
+      <h2>Fallecidos por atropello, cada año</h2>
+      <p class="delta" id="delta-fallecidos"></p>
+      <div class="plot" id="chart-fallecidos"></div>
+    </div>
+
+    <div class="chart-card hero">
+      <h2>% de esos fallecidos atribuible a imprudencia del peatón</h2>
+      <p class="delta" id="delta-share"></p>
+      <div class="plot" id="chart-share"></div>
+    </div>
+
+    <div class="chart-card">
+      <h2>Penetración de telefonía móvil (abonados cada 100 hab.)</h2>
+      <p class="delta" id="delta-penetracion"></p>
+      <div class="plot" id="chart-penetracion"></div>
+    </div>
+  </div>
+
+  <details class="table-view">
+    <summary>Ver los datos en tabla</summary>
+    <table class="data-table" id="data-table">
+      <thead>
+        <tr><th>Año</th><th>Penetración móvil (/100 hab.)</th><th>Fallecidos por atropello</th><th>% imprudencia del peatón</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </details>
+
+  <footer class="source">
+    Fuentes: CONASET / Carabineros de Chile (siniestros de tránsito, causas desglosadas) y SUBTEL
+    (abonados móviles). Datos crudos en <code>data/cruda/</code>, procesamiento reproducible en
+    <code>data/procesamiento/procesar_datos.py</code>.
+  </footer>
+
+</div>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tone@15.0.4/build/Tone.js"></script>
+<script src="js/main.js" defer></script>
+</body>
+</html>
