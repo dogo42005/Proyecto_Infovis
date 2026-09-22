@@ -181,24 +181,37 @@ function setupSonification(data) {
     outMin + ((v - inMin) / (inMax - inMin)) * (outMax - outMin);
 
   function ensureAudio() {
-    if (synth) return;
+    if (synth) return Promise.resolve();
     filter = new Tone.Filter(800, 'lowpass').toDestination();
     synth = new Tone.Synth({
       oscillator: { type: 'triangle' },
       envelope: { attack: 0.02, decay: 0.15, sustain: 0.2, release: 0.25 },
     }).connect(filter);
-    crashPlayer = new Tone.Player(CRASH_URL).toDestination();
+    return new Promise((resolve) => {
+      crashPlayer = new Tone.Player({ url: CRASH_URL, onload: resolve }).toDestination();
+    });
   }
 
   async function playTimeline() {
-    ensureAudio();
+    await ensureAudio();
     await Tone.start();
+    // el primer arranque "en frío" del AudioContext del navegador tarda un
+    // instante en estabilizar su reloj interno; sin este respiro, el primer
+    // start() puede chocar con él ("Start time must be strictly greater...").
+    await new Promise((resolve) => setTimeout(resolve, 200));
     playing = true;
     btn.textContent = '■ Detener';
     btn.setAttribute('aria-pressed', 'true');
 
     let i = 0;
     const stepMs = 320;
+
+    // el choque es un sample largo (~30s): se dispara UNA sola vez y suena
+    // continuo de fondo — retriggerlo cada año apilaría copias enteras unas
+    // sobre otras. Lo que sube cada 320ms, en sincronía con el año, es su volumen.
+    crashPlayer.volume.value = Tone.gainToDb(CRASH_GAIN_START);
+    crashPlayer.start(Tone.now() + 0.1);
+
     const tick = () => {
       if (!playing || i >= data.length) {
         stop();
@@ -212,11 +225,8 @@ function setupSonification(data) {
       synth.volume.value = Tone.gainToDb(gain);
       synth.triggerAttackRelease(freq, '8n');
 
-      if (crashPlayer.loaded) {
-        const crashGain = lerp(i, 0, data.length - 1, CRASH_GAIN_START, CRASH_GAIN_END);
-        crashPlayer.volume.value = Tone.gainToDb(crashGain);
-        crashPlayer.start();
-      }
+      const crashGain = lerp(i, 0, data.length - 1, CRASH_GAIN_START, CRASH_GAIN_END);
+      crashPlayer.volume.rampTo(Tone.gainToDb(crashGain), (stepMs / 1000) * 0.85);
 
       window.__focusYear(row.anio);
       i += 1;
@@ -229,12 +239,18 @@ function setupSonification(data) {
     playing = false;
     btn.textContent = '▶ Reproducir cronología';
     btn.setAttribute('aria-pressed', 'false');
-    if (crashPlayer) crashPlayer.stop();
+    if (crashPlayer && crashPlayer.state === 'started') crashPlayer.stop();
   }
 
   btn.addEventListener('click', () => {
-    if (playing) stop();
-    else playTimeline();
+    if (playing) {
+      stop();
+    } else {
+      playTimeline().catch((err) => {
+        console.error('Fallo la reproducción de la cronología:', err);
+        stop();
+      });
+    }
   });
 }
 
