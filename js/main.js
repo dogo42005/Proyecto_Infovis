@@ -157,7 +157,7 @@ async function main() {
     tbody.appendChild(tr);
   });
 
-  // --- sonificación: tono = % imprudencia, volumen = fallecidos, timbre = filtro que se abre con el tiempo ---
+  // --- sonificación: choque continuo — volumen sube con el tiempo, timbre (filtro) con el % de imprudencia ---
   setupSonification(data);
 }
 
@@ -168,27 +168,19 @@ const CRASH_GAIN_END = 1.0; // 2025: al frente de la mezcla
 function setupSonification(data) {
   const btn = document.getElementById('play-btn');
   let playing = false;
-  let synth, filter, crashPlayer;
+  let filter, crashPlayer;
 
   const shares = data.map((d) => d.imprudencia_share);
-  const fallecidos = data.map((d) => d.atropello_fallecidos);
   const [shareMin, shareMax] = [Math.min(...shares), Math.max(...shares)];
-  const [fMin, fMax] = [Math.min(...fallecidos), Math.max(...fallecidos)];
 
-  const freqLow = 220; // A3 — año tranquilo, % bajo
-  const freqHigh = 660; // E5 — % alto, más tensión
   const lerp = (v, inMin, inMax, outMin, outMax) =>
     outMin + ((v - inMin) / (inMax - inMin)) * (outMax - outMin);
 
   function ensureAudio() {
-    if (synth) return Promise.resolve();
-    filter = new Tone.Filter(800, 'lowpass').toDestination();
-    synth = new Tone.Synth({
-      oscillator: { type: 'triangle' },
-      envelope: { attack: 0.02, decay: 0.15, sustain: 0.2, release: 0.25 },
-    }).connect(filter);
+    if (filter) return Promise.resolve();
+    filter = new Tone.Filter(500, 'lowpass').toDestination();
     return new Promise((resolve) => {
-      crashPlayer = new Tone.Player({ url: CRASH_URL, onload: resolve }).toDestination();
+      crashPlayer = new Tone.Player({ url: CRASH_URL, onload: resolve }).connect(filter);
     });
   }
 
@@ -218,12 +210,8 @@ function setupSonification(data) {
         return;
       }
       const row = data[i];
-      const freq = lerp(row.imprudencia_share, shareMin, shareMax, freqLow, freqHigh);
-      const gain = lerp(row.atropello_fallecidos, fMin, fMax, 0.12, 0.35);
-      const cutoff = lerp(row.imprudencia_share, shareMin, shareMax, 500, 2200); // timbre: más brillante cuando % sube
-      filter.frequency.rampTo(cutoff, 0.15);
-      synth.volume.value = Tone.gainToDb(gain);
-      synth.triggerAttackRelease(freq, '8n');
+      const cutoff = lerp(row.imprudencia_share, shareMin, shareMax, 500, 2600); // timbre: más brillante cuando % sube
+      filter.frequency.rampTo(cutoff, (stepMs / 1000) * 0.85);
 
       const crashGain = lerp(i, 0, data.length - 1, CRASH_GAIN_START, CRASH_GAIN_END);
       crashPlayer.volume.rampTo(Tone.gainToDb(crashGain), (stepMs / 1000) * 0.85);
