@@ -3,7 +3,7 @@
 
 const COLOR = {
   context: '#2a78d6',
-  hero: '#eb6834',
+  hero: '#1baf7a',
   hypothesis: '#4a3aa7',
   grid: '#e1e0d9',
   baseline: '#c3c2b7',
@@ -31,7 +31,7 @@ function baseLayout(yTitle, tickFormat) {
     margin: { l: 56, r: 16, t: 6, b: 30 },
     paper_bgcolor: COLOR.surface,
     plot_bgcolor: COLOR.surface,
-    font: { family: 'system-ui, -apple-system, "Segoe UI", sans-serif', color: COLOR.secondary, size: 12 },
+    font: { family: 'Arial, Helvetica, sans-serif', color: COLOR.secondary, size: 12 },
     xaxis: {
       dtick: 5, tickformat: 'd', gridcolor: COLOR.grid, linecolor: COLOR.baseline,
       zeroline: false, fixedrange: true,
@@ -67,7 +67,7 @@ function endLabelAnnotation(data, yKey, color, suffix = '') {
   const val = yKey === 'imprudencia_share' ? last[yKey].toFixed(0) : Math.round(last[yKey]).toLocaleString('es-CL');
   return {
     x: last.anio, y: last[yKey], xanchor: 'left', yanchor: 'middle',
-    text: `  ${val}${suffix}`, showarrow: false, font: { color, size: 13, family: 'system-ui, sans-serif' },
+    text: `  ${val}${suffix}`, showarrow: false, font: { color, size: 13, family: 'Arial, Helvetica, sans-serif' },
   };
 }
 
