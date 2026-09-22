@@ -161,10 +161,14 @@ async function main() {
   setupSonification(data);
 }
 
+const CRASH_URL = 'js/sonido/choque-auto.mp3';
+const CRASH_GAIN_START = 0.05; // 2000: apenas se escucha
+const CRASH_GAIN_END = 1.0; // 2025: al frente de la mezcla
+
 function setupSonification(data) {
   const btn = document.getElementById('play-btn');
   let playing = false;
-  let synth, filter;
+  let synth, filter, crashPlayer;
 
   const shares = data.map((d) => d.imprudencia_share);
   const fallecidos = data.map((d) => d.atropello_fallecidos);
@@ -183,6 +187,7 @@ function setupSonification(data) {
       oscillator: { type: 'triangle' },
       envelope: { attack: 0.02, decay: 0.15, sustain: 0.2, release: 0.25 },
     }).connect(filter);
+    crashPlayer = new Tone.Player(CRASH_URL).toDestination();
   }
 
   async function playTimeline() {
@@ -206,6 +211,13 @@ function setupSonification(data) {
       filter.frequency.rampTo(cutoff, 0.15);
       synth.volume.value = Tone.gainToDb(gain);
       synth.triggerAttackRelease(freq, '8n');
+
+      if (crashPlayer.loaded) {
+        const crashGain = lerp(i, 0, data.length - 1, CRASH_GAIN_START, CRASH_GAIN_END);
+        crashPlayer.volume.value = Tone.gainToDb(crashGain);
+        crashPlayer.start();
+      }
+
       window.__focusYear(row.anio);
       i += 1;
       setTimeout(tick, stepMs);
@@ -217,6 +229,7 @@ function setupSonification(data) {
     playing = false;
     btn.textContent = '▶ Reproducir cronología';
     btn.setAttribute('aria-pressed', 'false');
+    if (crashPlayer) crashPlayer.stop();
   }
 
   btn.addEventListener('click', () => {
