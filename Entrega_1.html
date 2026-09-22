@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrega 1 — Proyecto de Visualización de Información</title>
+<style>
+  :root {
+    --cream:  #f4ece0;
+    --paper:  #ebe2d2;
+    --ink:    #1a1a1a;
+    --brick:  #c8442a;
+    --wood:   #a86a3d;
+    --ochre:  #d9a441;
+    --ink10:  rgba(26,26,26,0.1);
+    --ink20:  rgba(26,26,26,0.2);
+    --ink50:  rgba(26,26,26,0.55);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--cream); color: var(--ink);
+    font: 16px/1.6 Archivo, "Helvetica Neue", Arial, sans-serif;
+  }
+  .page { max-width: 820px; margin: 0 auto; padding: 48px 28px 80px; }
+  h1, h2, h3 { font-family: Fraunces, Georgia, "Times New Roman", serif; line-height: 1.15; }
+  .kicker {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--ink50); margin-bottom: 10px;
+  }
+  h1 { font-size: 2.3rem; margin: 0 0 6px; }
+  h1 em { color: var(--brick); font-style: italic; }
+  .subtitle { font-size: 1.15rem; color: var(--ink50); margin: 0 0 18px; font-style: italic; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; }
+  .pill {
+    border: 1.5px solid var(--ink); border-radius: 999px;
+    padding: 4px 14px; font-size: 0.82rem; font-weight: 700;
+  }
+  .pill--brick { background: var(--brick); border-color: var(--brick); color: var(--cream); }
+  h2 {
+    font-size: 1.5rem; margin: 52px 0 14px; padding-top: 26px;
+    border-top: 3px solid var(--ink);
+  }
+  h2 .num { color: var(--brick); margin-right: 8px; }
+  h3 { font-size: 1.12rem; margin: 26px 0 8px; }
+  p { margin: 0 0 14px; }
+  ul { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 7px; }
+  strong { font-weight: 700; }
+  a { color: var(--brick); }
+  .lead-box {
+    background: var(--ink); color: var(--cream); border-radius: 10px;
+    padding: 22px 26px; margin: 30px 0;
+  }
+  .lead-box h2 {
+    border: none; margin: 0 0 10px; padding: 0; font-size: 1.35rem; color: var(--cream);
+  }
+  .lead-box h2 em { color: #ffb38a; }
+  .lead-box p { margin-bottom: 10px; }
+  .lead-box p:last-child { margin-bottom: 0; }
+  .note {
+    background: var(--paper); border-left: 4px solid var(--ochre);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 18px 0;
+    font-size: 0.93rem;
+  }
+  .warn {
+    background: var(--paper); border-left: 4px solid var(--brick);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 18px 0;
+    font-size: 0.93rem;
+  }
+  .version {
+    background: var(--paper); border: 1px solid var(--ink20);
+    border-radius: 10px; padding: 18px 22px; margin: 16px 0;
+  }
+  .version-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .version-tag {
+    font-family: Fraunces, Georgia, serif; font-size: 1.5rem; font-weight: 800;
+    color: var(--brick);
+  }
+  .version-name { font-weight: 700; font-size: 1.05rem; }
+  .version p { font-size: 0.95rem; margin-bottom: 8px; }
+  .version p:last-child { margin-bottom: 0; }
+  .plantilla {
+    background: var(--paper); border: 1px solid var(--ink20);
+    border-radius: 10px; padding: 20px 26px;
+  }
+  .plantilla ol { margin: 0; padding-left: 22px; }
+  .plantilla li { margin-bottom: 12px; }
+  .plantilla li:last-child { margin-bottom: 0; }
+  .plantilla .sub { display: block; font-size: 0.9rem; color: var(--ink50); margin-top: 3px; }
+  .plantilla .campos {
+    margin: 16px 0 0; padding-top: 14px; border-top: 1px dashed var(--ink20);
+    font-size: 0.9rem;
+  }
+  .plantilla .campos + .campos { margin-top: 8px; padding-top: 0; border-top: none; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 0.93rem; }
+  th, td { border: 1px solid var(--ink20); padding: 9px 12px; text-align: left; vertical-align: top; }
+  th { background: var(--paper); font-weight: 700; }
+  td .max { color: var(--ink50); font-size: 0.83rem; font-style: italic; }
+  .rubrica .peso { white-space: nowrap; font-weight: 800; color: var(--brick); }
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li {
+    padding-left: 30px; position: relative; margin-bottom: 10px;
+  }
+  .checklist li::before {
+    content: ""; position: absolute; left: 0; top: 3px;
+    width: 15px; height: 15px; border: 2px solid var(--ink); border-radius: 4px;
+  }
+  .footer {
+    margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--ink20);
+    font-size: 0.85rem; color: var(--ink50);
+  }
+  @media print {
+    body { background: #fff; }
+    .page { padding: 0; max-width: none; }
+    .lead-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="kicker">Proyecto de Visualización de Información · IIC2026</div>
+  <h1>Entrega 1 — <em>el proceso de diseño</em> de una visualización interactiva y sonora</h1>
+  <p class="subtitle">Un proyecto completo desde la primera semana; cuatro versiones de diseño, cada una con su porqué.</p>
+  <div class="meta">
+    <span class="pill pill--brick">40 % del proyecto · 32 % de la nota final</span>
+    <span class="pill">Grupal</span>
+    <span class="pill">Entrega: Jueves 22 de octubre de 2026 · 23:59</span>
+  </div>
+</header>
+
+<div class="lead-box">
+  <h2>Lo que se evalúa aquí es <em>el proceso de diseño</em>, no el resultado</h2>
+  <p>Hoy, con Claude Code o Antigravity, una visualización interactiva y sonora se construye en una tarde: la parte "difícil" ya no es mérito. Por eso esta entrega no premia llegar al resultado, sino <strong>iterarlo</strong>: partir de una idea completa y mejorarla durante semanas — discutiendo, criticando, descartando y justificando — hasta que el diseño esté a la altura del mensaje. Deberán documentar <strong>al menos cuatro versiones</strong> y el <strong>porqué racional de cada evolución</strong>.</p>
+  <p>Un resultado sobrio con un proceso de diseño claro y bien argumentado vale <strong>más</strong> que un resultado espectacular con un proceso mal documentado o reconstruido a última hora.</p>
+</div>
+
+<h2><span class="num">1.</span> Qué deben construir</h2>
+<p>Una <strong>visualización de información interactiva y con sonificación</strong>, publicada en la web, que comunique de manera efectiva un mensaje a partir de un conjunto de datos elegido libremente por el grupo.</p>
+<ul>
+  <li>La <strong>vista general</strong> debe transmitir un mensaje significativo por sí sola.</li>
+  <li>La <strong>interacción</strong> debe servir para profundizar en aspectos específicos de los datos, alineándose con el mantra de Shneiderman (<em>overview first, zoom and filter, details on demand</em>).</li>
+  <li>La <strong>sonificación</strong> debe enriquecer la exploración o la carga emocional del mensaje — no ser un adorno.</li>
+</ul>
+<p><strong>Partan completos desde el día uno.</strong> La V1 ya debe ser una visualización interactiva y sonora funcionando — construirla es rápido con los agentes de IA del curso. El trabajo de las semanas siguientes no es agregar piezas cada vez más difíciles: es <strong>iterar el diseño</strong> de esa idea completa hasta que comunique de verdad. Ese proceso es lo que esta entrega documenta.</p>
+
+<div class="note">
+  <strong>Antes de partir:</strong> apenas tengan identificado el <strong>dataset</strong> y una <strong>idea tentativa</strong> del mensaje principal, completen <a href="https://docs.google.com/forms/d/e/1FAIpQLSdtbZGPKuiLFKBFam1V2nKbu-GhMBIxYrAy5nfD2JW7NCHZqQ/viewform">este formulario</a>. Si llegan dos ideas similares, tiene prioridad la primera; el otro grupo deberá ajustar su propuesta. Si más adelante cambian el dataset o la idea general, deben enviar un nuevo formulario justificando el cambio.
+</div>
+
+<h2><span class="num">2.</span> Las cuatro versiones</h2>
+<p>El proyecto se documenta como una secuencia de <strong>al menos cuatro versiones</strong>, repartidas en las semanas de trabajo — el ritmo natural es <strong>una versión por semana</strong>. Cada versión es un estado <strong>completo, funcional y razonable</strong> del proyecto: algo que se puede usar, mostrar y discutir. Lo que cambia entre una versión y la siguiente no es la cantidad de tecnología: es la <strong>calidad del diseño</strong>.</p>
+<p>Una iteración puede tocar cualquier frente — afinar el mensaje, rehacer la forma visual, repensar la interacción, rediseñar la sonificación, o varios a la vez. Lo único que no puede pasar es el cambio inexplicado: cada evolución nace de una discusión — las revisiones con el equipo docente, la revisión entre pares, la evaluación con usuarios, la crítica interna del grupo a la luz de los principios del curso — y se justifica.</p>
+
+<div class="version">
+  <div class="version-head"><span class="version-tag">V1</span><span class="version-name">La idea completa</span></div>
+  <p>La primera versión ya lo tiene todo: mensaje, datos, forma visual, interacción y sonificación funcionando. No importa que esté cruda — importa que sea <strong>discutible</strong>: es el material de la primera crítica seria.</p>
+</div>
+
+<div class="version">
+  <div class="version-head"><span class="version-tag">V2</span><span class="version-name">Primera iteración de diseño</span></div>
+  <p>Qué no estaba funcionando — del mensaje, de la forma, de la interacción, del sonido — y cómo lo mejoraron. Aquí se nota el efecto de la <strong>R1</strong>, la primera revisión con el equipo docente.</p>
+</div>
+
+<div class="version">
+  <div class="version-head"><span class="version-tag">V3</span><span class="version-name">Segunda iteración de diseño</span></div>
+  <p>El diseño se afina: jerarquías, percepción, los detalles de la interacción, el rol exacto del sonido. Las decisiones se vuelven más finas y las justificaciones, más precisas — alimentadas por la <strong>R2</strong>, la revisión entre pares, y/o la evaluación con usuarios.</p>
+</div>
+
+<div class="version">
+  <div class="version-head"><span class="version-tag">V4</span><span class="version-name">La versión final</span></div>
+  <p>El cierre, tras la <strong>R3</strong> — la última revisión con el equipo docente: los últimos ajustes justificados y el balance del recorrido — qué mejoró desde V1, y qué decidieron <strong>no</strong> cambiar y por qué. Es la versión que mejor comunica el mensaje, no la que más cosas tiene.</p>
+</div>
+
+<p>Cuatro es el mínimo: si su proceso real tuvo más versiones o un cambio de rumbo a mitad de camino, documéntenlo — un proceso honesto con desvíos vale más que uno lineal maquillado.</p>
+
+<h2><span class="num">3.</span> Las revisiones: dos con el equipo docente, una entre pares</h2>
+<p>No van a iterar solos: el proceso tiene <strong>tres instancias de discusión</strong>, intercaladas con las versiones. Son sesiones de trabajo, no interrogaciones: se mira la versión vigente, se discute qué funciona y qué no, y se sale con decisiones. Las fechas se anunciarán en clase.</p>
+<table>
+  <tr><th style="width:19%">Momento</th><th style="width:28%">Instancia</th><th>Qué pasa</th></tr>
+  <tr>
+    <td>Entre V1 y V2</td>
+    <td><strong>R1 — equipo docente</strong></td>
+    <td>Profesor y/o ayudantes miran la V1 funcionando, y de la discusión salen las decisiones que alimentan la V2.</td>
+  </tr>
+  <tr>
+    <td>Entre V2 y V3</td>
+    <td><strong>R2 — entre pares</strong></td>
+    <td>En clase, presencial y supervisada por un ayudante: cada grupo presenta su V2, recibe feedback estructurado de otro grupo — y da el suyo sobre el proyecto ajeno. El feedback que dan también se evalúa (sección 4).</td>
+  </tr>
+  <tr>
+    <td>Entre V3 y V4</td>
+    <td><strong>R3 — equipo docente</strong></td>
+    <td>Se revisa cómo evolucionó el proyecto y se afinan las últimas decisiones antes de la versión final.</td>
+  </tr>
+</table>
+<p>El proceso completo se lee entonces como una sola historia: <strong>V1 → R1 → V2 → R2 → V3 → R3 → V4</strong> — y así mismo, intercalado, se cuenta en el documento de entrega (ver la plantilla, sección 10).</p>
+<ul>
+  <li><strong>Lleguen con material:</strong> la versión funcionando y 2–3 preguntas o dudas de diseño concretas.</li>
+  <li><strong>Los ayudantes toman apuntes</strong> de lo discutido y acordado en cada instancia — y en la R1 y la R3, además, <strong>un ayudante por estudiante</strong> registra cómo responde cada integrante en el diálogo.</li>
+  <li><strong>En la corrección se cruzan esos apuntes con sus versiones:</strong> lo conversado tiene que haber sido <strong>ponderado con razones</strong> — iterar no es obedecer: cada sugerencia (venga del equipo docente o del otro grupo) se adopta o se descarta con argumentos, y esa decisión queda en el registro. Un grupo que solo ejecuta lo que se le dijo hace de intermediario entre la IA y el profesor — eso no es diseñar.</li>
+</ul>
+<p>En el documento de entrega, cada revisión es una sección propia <strong>entre las versiones</strong>: fecha, qué se discutió (síntesis breve) y qué decisiones tomaron a partir de ahí — qué adoptaron, qué descartaron y por qué — y cómo se ve eso en la versión siguiente <span style="color:var(--ink50)">(máximo 10 líneas por revisión)</span>.</p>
+<div class="warn">
+  <strong>La nota es grupal; tu comprensión, individual.</strong> En la R1 y la R3 el diálogo con el profesor es con <em>cada</em> integrante: preguntas sobre las decisiones de diseño, la teoría que las sustenta y la implementación. Pueden usar la IA cuanto quieran para construir — lo que no se puede delegar es la comprensión. Al cierre de la revisión, cada estudiante completa una breve <strong>autoevaluación estructurada</strong> junto a un ayudante, y el ayudante que lo observó registra sus apuntes. Cruzando ambos, la nota grupal de la entrega recibe un <strong>modificador individual</strong>: puede subir si demuestras dominio, y puede bajar significativamente — hasta ser <strong>reprobatorio</strong> — si no demuestras un mínimo de competencia sobre tu propio proyecto. La honestidad cuenta: reconocer lo que no supiste pesa distinto que negarlo.
+</div>
+
+<h2><span class="num">4.</span> El feedback al otro grupo</h2>
+<p>En la R2 — la revisión entre pares — no solo reciben feedback: también lo dan. Y darlo bien <strong>se evalúa</strong> — mirar con ojos críticos el proyecto de otro grupo es una de las mejores formas de afinar el propio.</p>
+<p>En el documento de entrega, dediquen una sección aparte al proyecto que les tocó evaluar:</p>
+<ul>
+  <li><strong>El proyecto evaluado</strong> <span style="color:var(--ink50)">(máximo 5 líneas)</span>: de qué grupo se trata, qué mensaje comunica su visualización y en qué estado estaba cuando la vieron.</li>
+  <li><strong>El feedback que dieron</strong> <span style="color:var(--ink50)">(máximo 12 líneas)</span>: las observaciones y sugerencias concretas que hicieron, ancladas en los principios del curso — vale la misma regla del rationale: "se ve raro" no es feedback; "el eje truncado exagera la diferencia entre categorías" sí.</li>
+  <li><strong>Lo que se llevaron para su propio proyecto</strong> <span style="color:var(--ink50)">(máximo 5 líneas)</span>: errores ajenos que reconocieron en el propio trabajo, ideas que adaptaron (citando al otro grupo), decisiones que salieron confirmadas.</li>
+</ul>
+<p>El ayudante que supervisa la sesión toma nota del feedback que cada grupo da: su <strong>calidad</strong> — especificidad, anclaje en los principios, tono constructivo — es parte de la nota (ver pauta de evaluación).</p>
+
+<h2><span class="num">5.</span> El registro de cada versión</h2>
+<p>Por <strong>cada una</strong> de las versiones, el documento de entrega debe incluir:</p>
+<table>
+  <tr><th style="width:34%">Campo</th><th>Qué se espera</th></tr>
+  <tr>
+    <td><strong>Identificación</strong></td>
+    <td>Número de versión, fecha aproximada y <strong>commit o tag de GitHub</strong> correspondiente. <span class="max">Obligatorio: las versiones deben ser verificables en el historial del repositorio.</span></td>
+  </tr>
+  <tr>
+    <td><strong>Evidencia visual y sonora</strong></td>
+    <td><strong>Cada versión con su propia evidencia</strong>: captura(s) de pantalla y un <strong>video corto</strong> (o GIF con enlace al video) donde se vea la interacción y se escuche la sonificación de esa versión. La evolución del diseño tiene que poder <strong>verse y oírse</strong>, versión por versión.</td>
+  </tr>
+  <tr>
+    <td><strong>Qué cambió</strong></td>
+    <td>Lista concreta de los cambios respecto a la versión anterior (en V1: las decisiones iniciales). <span class="max">Máximo 8 líneas.</span></td>
+  </tr>
+  <tr>
+    <td><strong>Por qué cambió — el rationale</strong></td>
+    <td>La justificación razonada de cada cambio, anclada en al menos una de estas fuentes: <strong>principios del curso</strong> (percepción, Gestalt, jerarquía, ink-ratio, mantra de Shneiderman, principios de sonificación), <strong>lo discutido en las revisiones</strong> (con el equipo docente o entre pares), <strong>feedback de usuarios</strong> (thinking aloud) o <strong>evidencia de los datos</strong>. <span class="max">Máximo 12 líneas. Es la parte con más peso en la nota.</span></td>
+  </tr>
+  <tr>
+    <td><strong>Qué se descartó</strong></td>
+    <td>Alternativas que consideraron o probaron y no siguieron, y por qué. Descartar con criterio también es diseñar. <span class="max">Máximo 5 líneas.</span></td>
+  </tr>
+</table>
+<div class="warn">
+  <strong>"Porque se veía mejor" no es un rationale.</strong> "Pasamos de un gráfico de torta a barras horizontales porque con 12 categorías la comparación de ángulos es imprecisa (percepción de posición &gt; ángulo) y dos evaluadores no lograron ordenar las categorías en voz alta" — eso sí es un rationale.
+</div>
+<div class="warn">
+  <strong>El historial de GitHub cuenta la historia real.</strong> Cuatro versiones creadas con cuatro commits la noche anterior a la entrega no son un proceso: son una escenografía, y se penalizará fuertemente. Trabajen y suban avances durante todo el período — el repositorio es su mejor testigo.
+</div>
+
+<h2><span class="num">6.</span> Contexto general del proyecto</h2>
+<p>Además del registro de versiones, el documento incluye una sola vez:</p>
+<ul>
+  <li><strong>Mensaje principal</strong> <span style="color:var(--ink50)">(máximo 10 líneas)</span>: qué historia o análisis presenta la visualización final.</li>
+  <li><strong>Origen y procesamiento de los datos</strong> <span style="color:var(--ink50)">(máximo 8 líneas)</span>: de dónde provienen los datos y qué transformaciones hicieron, incluidos ajustes para facilitar la interacción o la sonificación.</li>
+</ul>
+
+<h2><span class="num">7.</span> Evaluación con usuarios — la hoja del observador</h2>
+<p>Al menos <strong>una ronda de evaluación con la técnica de pensar en voz alta</strong> (thinking aloud), en el momento del proceso donde más les sirva — idealmente entre V2 y V3, o entre V3 y V4. Se recomiendan dos rondas: una a mitad de camino y una hacia el final. Es la técnica de evaluación más barata y más poderosa que existe: una persona explora la visualización <strong>diciendo todo lo que pasa por su cabeza</strong>, y ustedes escuchan lo que la viz comunica de verdad — no lo que creían haber diseñado.</p>
+<p>Cada ronda sigue esta <strong>hoja del observador</strong>, y su registro completo va en el documento:</p>
+<ol>
+  <li><strong>El pensador.</strong> Una persona <strong>externa al grupo</strong>, que nunca haya visto la visualización. Explora libremente diciendo en voz alta dudas, hipótesis y frustraciones; si se queda en silencio, se le recuerda seguir hablando. Ustedes <strong>no intervienen ni explican nada</strong>: si sienten la necesidad de explicar, eso ya es un hallazgo.</li>
+  <li><strong>El sonido también se piensa en voz alta.</strong> Pídanle explícitamente que comente lo que escucha: ¿qué dato cree que codifica el sonido? ¿le ayuda a entender o le estorba? La sonificación se evalúa igual que lo visual — por lo que el pensador entiende <strong>sin que se lo expliquen</strong>.</li>
+  <li><strong>La bitácora.</strong> Anoten cada ~30 segundos, o cada vez que cambie el comportamiento, en tres columnas: <strong>tiempo · lo que dice · lo que hace</strong>. La regla de oro: <strong>cita literal, no interpretación</strong> — «esto no entiendo qué quiere decir» vale más que «se confundió». Y acciones concretas: «pasa el cursor por la leyenda», «hace zoom dos veces», «vuelve al título».</li>
+  <li><strong>Las heurísticas.</strong> Al cierre, marquen cuáles de las heurísticas del curso (Zuk-Carpendale) vieron fallar durante la sesión: la importancia del dato no está clara · las distancias visuales engañan · falta contexto (fuente, pregunta) · saturación de elementos · el color confunde o no aporta · la interacción no es descubrible · el sonido no se entiende sin explicación.</li>
+  <li><strong>Las tres preguntas de cierre.</strong> A partir de lo observado — no de lo que ustedes habrían hecho: ¿dónde se atascó más tiempo? ¿qué hipótesis dijo en voz alta y resultó equivocada? (si la viz invitó a una lectura errada, el error es del diseño, no del lector) ¿qué cambio concreto sale de esta sesión?</li>
+</ol>
+<p><strong>Efecto en el proceso:</strong> indiquen explícitamente en qué transición de versión (por ejemplo, V3 → V4) se incorporó — o se decidió no incorporar, y por qué — lo aprendido.</p>
+
+<h2><span class="num">8.</span> Implementación y enlaces</h2>
+<ul>
+  <li><strong>Enlace a GitHub Pages</strong> con la versión final funcionando. <strong>Obligatorio.</strong></li>
+  <li><strong>Enlace al repositorio de GitHub</strong>, cuyo historial de commits respalda las versiones documentadas. <strong>Obligatorio.</strong></li>
+  <li><strong>Video</strong> (YouTube u otra plataforma pública): grabación de pantalla <strong>con audio</strong> mostrando la interacción y la sonificación. En Windows pueden usar la Xbox Game Bar, OBS Studio o ShareX; en macOS, QuickTime u OBS.</li>
+  <li>Recomendado: mantener las versiones navegables (tags de Git, releases, o subcarpetas <code>/v1</code>, <code>/v2</code>… en Pages) para que el equipo docente pueda recorrer la evolución.</li>
+</ul>
+
+<h2><span class="num">9.</span> Pauta de evaluación</h2>
+<table class="rubrica">
+  <tr><th>Criterio</th><th style="width:12%">Peso</th><th>Qué se mira</th></tr>
+  <tr>
+    <td><strong>Proceso iterativo documentado</strong></td>
+    <td class="peso">25 %</td>
+    <td>Al menos cuatro versiones completas y verificables (commits/tags), cada una con su propia evidencia visual y sonora, y con evolución de diseño significativa entre una y otra.</td>
+  </tr>
+  <tr>
+    <td><strong>Rationale de la evolución</strong></td>
+    <td class="peso">25 %</td>
+    <td>Calidad y honestidad de las justificaciones: ancladas en principios del curso, discusiones, feedback o evidencia de los datos; incluye lo que se descartó y por qué.</td>
+  </tr>
+  <tr>
+    <td><strong>Revisiones (R1 &middot; R2 &middot; R3)</strong></td>
+    <td class="peso">15 %</td>
+    <td>Llegaron preparados a las tres instancias, y lo discutido — registrado en los apuntes de los ayudantes — fue ponderado con razones en las versiones siguientes: adoptado o descartado, siempre con argumentos.</td>
+  </tr>
+  <tr>
+    <td><strong>Feedback al otro grupo</strong></td>
+    <td class="peso">10 %</td>
+    <td>Calidad del feedback dado en la R2 — específico, anclado en los principios, constructivo — según los apuntes del ayudante supervisor y la sección correspondiente del documento.</td>
+  </tr>
+  <tr>
+    <td><strong>Implementación final</strong></td>
+    <td class="peso">15 %</td>
+    <td>La visualización interactiva y sonora funciona en GitHub Pages, es coherente con el mensaje y aplica los principios vistos en el curso.</td>
+  </tr>
+  <tr>
+    <td><strong>Evaluación con usuarios</strong></td>
+    <td class="peso">10 %</td>
+    <td>La hoja del observador seguida y completa — bitácora con citas literales, heurísticas, preguntas de cierre —, hallazgos concretos (también sobre el sonido) y efecto visible (y explícito) en el proceso.</td>
+  </tr>
+</table>
+<p>Esta pauta produce la <strong>nota grupal</strong> de la entrega. Sobre ella se aplica el <strong>modificador individual</strong> que sale del diálogo en las revisiones R1 y R3 (ver sección 3).</p>
+
+<h2><span class="num">10.</span> La plantilla del documento</h2>
+<p>Esta es la estructura exacta del documento que deben entregar — cópienla y complétenla. El corazón del documento cuenta el proceso <strong>en orden cronológico</strong>, versiones y revisiones intercaladas, para que la historia de la iteración se lea de corrido. Pueden agregar subsecciones si les sirve, pero <strong>ninguna de estas partes puede faltar</strong>.</p>
+<div class="plantilla">
+<ol>
+  <li><strong>Portada</strong>
+    <span class="sub">Número de grupo, integrantes, y los tres enlaces: GitHub Pages, repositorio y video.</span></li>
+  <li><strong>Contexto general</strong>
+    <span class="sub">Mensaje principal (máx. 10 líneas) · Origen y procesamiento de los datos (máx. 8 líneas).</span></li>
+  <li><strong>V1 — la idea completa</strong> <span class="sub">Campos de versión ↓</span></li>
+  <li><strong>R1 — revisión con el equipo docente</strong> <span class="sub">Campos de revisión ↓</span></li>
+  <li><strong>V2 — primera iteración de diseño</strong> <span class="sub">Campos de versión ↓</span></li>
+  <li><strong>R2 — revisión entre pares</strong> <span class="sub">Campos de revisión ↓</span></li>
+  <li><strong>V3 — segunda iteración de diseño</strong> <span class="sub">Campos de versión ↓</span></li>
+  <li><strong>R3 — revisión con el equipo docente</strong> <span class="sub">Campos de revisión ↓</span></li>
+  <li><strong>V4 — la versión final</strong> <span class="sub">Campos de versión ↓ · Si hubo versiones intermedias, agréguenlas donde correspondan.</span></li>
+  <li><strong>El feedback al otro grupo</strong> (lo que dieron en la R2)
+    <span class="sub">El proyecto evaluado (máx. 5 líneas) · el feedback que dieron (máx. 12 líneas) · lo que se llevaron para su propio proyecto (máx. 5 líneas).</span></li>
+  <li><strong>Evaluación con usuarios</strong>
+    <span class="sub">Campos de la hoja del observador ↓ · Una subsección por ronda, si hicieron más de una.</span></li>
+</ol>
+<p class="campos"><strong>Campos de cada versión (V1–V4):</strong> identificación (fecha + commit/tag) · evidencia (capturas + video corto con interacción y sonido) · qué cambió (máx. 8 líneas) · por qué cambió, el rationale (máx. 12 líneas) · qué se descartó (máx. 5 líneas).</p>
+<p class="campos"><strong>Campos de cada revisión (R1–R3):</strong> fecha · síntesis de lo discutido (breve) · decisiones tomadas: qué adoptaron, qué descartaron y por qué (máx. 10 líneas).</p>
+<p class="campos"><strong>Campos de la hoja del observador (sección 7, por ronda):</strong> quién fue el pensador y cuándo (máx. 2 líneas) · la bitácora (tiempo · cita literal · acción) · qué dijo del sonido · heurísticas que fallaron · las tres respuestas de cierre: atasco, hipótesis equivocada, cambio concreto · efecto en el proceso (en qué transición de versión se refleja — o por qué no).</p>
+</div>
+
+<h2><span class="num">11.</span> Checklist antes de entregar</h2>
+<ul class="checklist">
+  <li>Usamos el <strong>ciclo de diseño</strong> visto en clases, y se nota en las versiones.</li>
+  <li>Revisamos los <strong>tipos de visualización</strong> adecuados para la pregunta que queremos responder.</li>
+  <li>No hay <strong>errores comunes</strong> sin justificar (ejes truncados, dobles ejes engañosos, 3D innecesario, etc.).</li>
+  <li>Aplicamos los <strong>principios de diseño</strong>: resaltar lo importante, jerarquías claras, tipografía cuidada, menos es más.</li>
+  <li>Lo que queremos comunicar y la forma en que lo hacemos son <strong>coherentes</strong>.</li>
+  <li>La <strong>interacción</strong> sigue el mantra de Shneiderman y va más allá de la que Plotly trae por defecto — o justificamos de forma convincente un enfoque alternativo (incluso lúdico), fácil y coherente.</li>
+  <li>La <strong>sonificación</strong> usa parámetros efectivos (tono, ritmo, timbre) y no descansa solo en el volumen. Ejemplo clásico: un sonido de terremoto a bajo volumen sigue evocando destrucción — el tipo de sonido debe cambiar con el dato, no solo su intensidad.</li>
+  <li>Nuestra visualización <strong>no se basa únicamente en un gráfico de barras</strong> — o su uso está justificado de manera (muy) convincente.</li>
+  <li>El resultado visual está <strong>alineado y ordenado</strong> en la página.</li>
+  <li>Fuimos a las <strong>revisiones</strong> con una versión funcionando y preguntas concretas — y lo discutido se nota en las versiones siguientes.</li>
+  <li>Dimos al otro grupo <strong>feedback específico y anclado en principios</strong> en la revisión entre pares — y la sección sobre su proyecto está en el documento.</li>
+  <li>Cada versión del registro tiene su <strong>commit o tag</strong> en GitHub y su propia <strong>evidencia visual y sonora</strong> (capturas + video corto).</li>
+</ul>
+
+<h2><span class="num">12.</span> Formato de entrega</h2>
+<p><strong>Se entrega un único PDF.</strong> Cómo lo produzcan es asunto del grupo — Word, Google Docs, LaTeX, Markdown exportado, lo que prefieran — pero lo que se envía es un PDF, legible y con la estructura de la plantilla de la sección 10.</p>
+<p>Envíen el PDF <strong>exclusivamente mediante este formulario</strong>: <a href="https://docs.google.com/forms/d/e/1FAIpQLScMR_a3VbY7w4VSkzC2eTkF9yP7cqqEFeiTAMBtdWsIfL500g/viewform">Entrega 1 — Proyecto Visualización de Información IIC2026</a>.</p>
+<div class="warn">
+  <p><strong>Atraso.</strong> El plazo es el que aparece arriba, a las 23:59. Pasada esa hora se descuentan <strong>0,5 puntos por cada día de atraso</strong> (o fracción de día), sobre la nota que obtuvo la entrega.</p>
+  <p><strong>Límite.</strong> Pasados cuatro días, recibir la entrega <strong>deja de estar garantizado</strong>: si el equipo docente ya no está en condiciones de corregirla, la nota es un 1,0.</p>
+  <p><strong>Otro canal.</strong> El formulario es la única vía válida. Una entrega enviada por correo, por mensaje o como enlace suelto <strong>descuenta un punto</strong>, aunque llegue dentro del plazo.</p>
+  <p style="margin-bottom:0">Los descuentos son acumulables, así que conviene reservar un rato la tarde de la entrega: subir el PDF toma dos minutos, pero hacerlo a las 23:58 con el WiFi caído sale caro.</p>
+</div>
+
+<div class="footer">
+  Proyecto de Visualización de Información · IIC2026 — Pontificia Universidad Católica de Chile.<br>
+  Esta página es la pauta oficial de la entrega; la fecha de arriba se actualiza sola con el calendario del curso.
+</div>
+
+</div>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"7d3a36d0cbcf4f18955f270fd5ba0f00","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
