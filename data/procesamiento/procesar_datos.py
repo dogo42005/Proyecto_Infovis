@@ -45,6 +45,28 @@ def leer_por_etiqueta(nombre_archivo, predicado, columnas, max_col=9):
     return pd.DataFrame(registros).sort_values("anio").reset_index(drop=True)
 
 
+def sumar_por_etiqueta(nombre_archivo, predicado, columnas, max_col=9):
+    """Como leer_por_etiqueta, pero SUMA todas las filas que cumplen el
+    predicado dentro de cada año, en vez de quedarse con la primera. Sirve
+    cuando la categoría se reparte en varias sub-etiquetas que cambian de
+    nombre o de cantidad entre años (p. ej. causas atribuibles al conductor)."""
+    wb = load_workbook(CRUDA / nombre_archivo, read_only=True, data_only=True)
+    registros = []
+    for nombre_hoja in wb.sheetnames:
+        if not nombre_hoja.strip().isdigit():
+            continue
+        anio = int(nombre_hoja)
+        ws = wb[nombre_hoja]
+        totales = {nombre: 0 for nombre in columnas}
+        for fila in ws.iter_rows(min_row=1, max_row=ws.max_row, max_col=max_col, values_only=True):
+            if predicado(normalizar(fila[0])):
+                for nombre, idx in columnas.items():
+                    totales[nombre] += fila[idx] or 0
+        registros.append({"anio": anio, **totales})
+    wb.close()
+    return pd.DataFrame(registros).sort_values("anio").reset_index(drop=True)
+
+
 # ---------------------------------------------------------------------------
 # SUBTEL — abonados móviles (serie principal de "uso del celular")
 # ---------------------------------------------------------------------------
@@ -176,6 +198,31 @@ def procesar_causas_peaton():
 
 
 # ---------------------------------------------------------------------------
+# CONASET — causas atribuibles al conductor (alcohol, imprudencia, drogas/
+# fatiga, y desde 2025 también "distracción del conductor" como categoría
+# propia). La taxonomía de Carabineros cambia de un año a otro — por eso se
+# SUMAN todas las filas "Total ... Conductor" de cada año en vez de listar
+# categorías fijas: cubre el cambio de taxonomía sin perder años.
+# ---------------------------------------------------------------------------
+def procesar_causas_conductor():
+    columnas = {
+        "siniestros": 2,
+        "fallecidos": 3,
+        "lesionados_graves": 4,
+        "lesionados_menos_graves": 5,
+        "lesionados_leves": 6,
+        "total_lesionados": 7,
+    }
+    df = sumar_por_etiqueta(
+        "Causas_desgregadas_conaset_carabineros2000-2025.xlsx",
+        lambda t: t.startswith("total") and "conductor" in t,
+        columnas,
+    )
+    df.to_csv(PROCESADA / "conaset_causas_conductor.csv", index=False)
+    return df
+
+
+# ---------------------------------------------------------------------------
 # CONASET — zona de ocurrencia (urbana / rural)
 # ---------------------------------------------------------------------------
 def procesar_zona_ocurrencia():
@@ -284,6 +331,7 @@ def main():
     atropello = procesar_atropello()
     peatones_calidad = procesar_peatones_calidad()
     procesar_causas_peaton()
+    causas_conductor = procesar_causas_conductor()
     procesar_zona_ocurrencia()
     procesar_evolucion_general()
     procesar_tasa_fallecidos_vehiculos()
@@ -291,6 +339,7 @@ def main():
 
     print(f"abonados_moviles:   {len(abonados)} filas ({abonados['anio'].min()}-{abonados['anio'].max()})")
     print(f"atropello:          {len(atropello)} filas ({atropello['anio'].min()}-{atropello['anio'].max()})")
+    print(f"causas_conductor:   {len(causas_conductor)} filas ({causas_conductor['anio'].min()}-{causas_conductor['anio'].max()})")
     print(f"dataset_principal:  {len(principal)} filas ({principal['anio'].min()}-{principal['anio'].max()})")
     print(f"\nArchivos escritos en: {PROCESADA}")
 

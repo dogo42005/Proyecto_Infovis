@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>La Brecha de la Movilidad</title>
+
+  <link rel="stylesheet" href="styles.css?v=4">
+
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+  <header class="hero">
+    <h1>¿Qué tan lejos llegas según tu país?</h1>
+    <p>
+      Explora la brecha de movilidad. Ajusta tu presupuesto y descubre cuántos kilómetros
+      puedes recorrer en el sedán más vendido de cada país considerando el precio local de la gasolina.
+    </p>
+  </header>
+
+  <main class="contenedor">
+
+    <section class="controles">
+      <div class="control-group">
+        <label for="presupuestoSlider">Presupuesto (USD): <span id="valorPresupuesto">$50</span></label>
+        <input type="range" id="presupuestoSlider" min="10" max="100" step="5" value="50">
+      </div>
+
+      <div class="control-group">
+        <label for="continenteFilter">Filtrar por Continente:</label>
+        <select id="continenteFilter">
+          <option value="Todos">Todos los continentes</option>
+          <option value="América">América</option>
+          <option value="Europa">Europa</option>
+          <option value="Asia">Asia</option>
+          <option value="África">África</option>
+          <option value="Oceanía">Oceanía</option>
+        </select>
+      </div>
+
+      <div class="instruccion-sonido">
+        🔊 <b>Sonificación:</b> Haz <i>clic</i> en la barra de cualquier país para escuchar su rendimiento (Ritmo rápido = Mayor distancia).
+      </div>
+
+      <div class="control-group modo-auto">
+        <button id="btnModoAuto">▶ Iniciar modo auto</button>
+        <label class="invertir">
+          <input type="checkbox" id="chkInvertir"> Invertir dirección
+        </label>
+        <p id="estadoModoAuto" class="estado-auto">
+          🚗 Toca "Iniciar modo auto": aparecerá un código. Abre <b>control.html</b> en tu teléfono,
+          escribe ese código (o escanea el QR) y monta el teléfono sobre el auto.
+        </p>
+
+        <div id="panelConexion" class="panel-conexion">
+          <div class="codigo-box">
+            Código de conexión:
+            <b id="codigoConexion">----</b>
+          </div>
+          <div id="qrConexion" class="qr-box"></div>
+          <p class="ayuda-conexion">
+            En el teléfono abre: <b id="urlControl">control.html</b><br>
+            y escribe el código, o escanea este QR.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="grafico-section">
+      <h2 id="tituloGrafico">Kilómetros recorridos con 50 USD</h2>
+      <div id="graficoBarras"></div>
+
+      <div class="leyenda">
+        <div class="leyenda-item"><span class="color-box america"></span>América</div>
+        <div class="leyenda-item"><span class="color-box europa"></span>Europa</div>
+        <div class="leyenda-item"><span class="color-box asia"></span>Asia</div>
+        <div class="leyenda-item"><span class="color-box africa"></span>África</div>
+        <div class="leyenda-item"><span class="color-box oceania"></span>Oceanía</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js?v=4"></script>
+  <script src="sensor_auto.js?v=4"></script>
+</body>
+</html>

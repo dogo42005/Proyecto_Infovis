@@ -17,7 +17,8 @@
     --border:         rgba(11,11,11,0.10);
     --c-context:    #2a78d6;  /* fallecidos por atropello — contexto que mejora */
     --c-hero:       #1baf7a;  /* % imprudencia del peatón — el hallazgo */
-    --c-hypothesis: #4a3aa7;  /* penetración móvil — hipótesis, no prueba */
+    --c-conductor:  #008300;  /* fallecidos por causa del conductor — comparación */
+    --c-hypothesis: #4a3aa7;  /* uso del celular — hipótesis, no prueba */
   }
   * { box-sizing: border-box; }
   body {
@@ -30,7 +31,7 @@
     font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em;
     text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
   }
-  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 12px; max-width: 42ch; }
+  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 12px; max-width: 30ch; text-wrap: balance; }
   h1 .accent { color: var(--c-hero); }
   .lede { font-size: 1.08rem; color: var(--text-secondary); max-width: 62ch; margin: 0 0 8px; }
   .lede strong { color: var(--text-primary); }
@@ -75,19 +76,7 @@
   .chart-card .delta { font-size: 0.86rem; color: var(--text-secondary); margin: 0 0 6px; }
   .chart-card .delta strong { font-variant-numeric: tabular-nums; }
   .chart-card.hero { border-color: color-mix(in srgb, var(--c-hero) 35%, var(--border)); }
-  .plot { width: 100%; height: 220px; }
-
-  details.table-view { margin-top: 30px; }
-  details.table-view summary {
-    cursor: pointer; font-weight: 700; color: var(--text-secondary); padding: 6px 0;
-  }
-  table.data-table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 0.88rem; }
-  table.data-table th, table.data-table td {
-    border: 1px solid var(--gridline); padding: 6px 10px; text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-  table.data-table th:first-child, table.data-table td:first-child { text-align: left; }
-  table.data-table th { background: var(--page); color: var(--text-secondary); font-weight: 700; }
+  .plot { width: 100%; height: 340px; }
 
   footer.source {
     margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--gridline);
@@ -100,17 +89,14 @@
 
   <header class="hero">
     <div class="kicker">Proyecto InfoVis · V1</div>
-    <h1>Chile hizo más seguro casi todo en el tránsito — <span class="accent">menos al peatón</span></h1>
+    <h1>Chile mejoró casi todo en el tránsito — <span class="accent">menos al peatón</span></h1>
     <p class="lede">
-      Entre 2000 y 2025 los fallecidos por atropello cayeron a la mitad,
-      pero la imprudencia del peatón pasó de explicar el 59&nbsp;% de esas
-      muertes al 71&nbsp;%. El único factor que no mejoró es el peatón mismo — justo en
-      los años en que el celular se volvió omnipresente.
+      Los atropellos bajaron a la mitad, pero el peatón explica cada vez más de esas
+      muertes — justo cuando el celular se volvió parte de la calle.
     </p>
     <p class="caveat">
-      Esto es una <strong>correlación temporal</strong>, no una prueba: la curva de
-      telefonía móvil se muestra como hipótesis a explorar, en su propio gráfico y su
-      propia escala — nunca superpuesta a la de accidentes.
+      Es una <strong>correlación en el tiempo</strong>, no una prueba: por eso el uso
+      del celular va en su propio gráfico, nunca mezclado con los accidentes.
     </p>
   </header>
 
@@ -125,48 +111,48 @@
 
   <dl class="details-panel" id="details-panel" aria-live="polite">
     <div class="detail">
-      <dt>Penetración móvil</dt>
-      <dd id="d-penetracion">—</dd>
+      <dt>Uso del celular</dt>
+      <dd id="d-celular">—</dd>
     </div>
     <div class="detail">
       <dt>Fallecidos por atropello</dt>
       <dd id="d-fallecidos">—</dd>
     </div>
     <div class="detail hero">
-      <dt>% por imprudencia del peatón</dt>
+      <dt>% por el peatón</dt>
       <dd id="d-share">—</dd>
+    </div>
+    <div class="detail">
+      <dt>Fallecidos por el conductor</dt>
+      <dd id="d-conductor">—</dd>
     </div>
   </dl>
 
   <div class="charts">
     <div class="chart-card">
-      <h2>Fallecidos por atropello, cada año</h2>
+      <h2>Fallecidos por atropello</h2>
       <p class="delta" id="delta-fallecidos"></p>
       <div class="plot" id="chart-fallecidos"></div>
     </div>
 
     <div class="chart-card hero">
-      <h2>% de esos fallecidos atribuible a imprudencia del peatón</h2>
+      <h2>% atribuible al peatón</h2>
       <p class="delta" id="delta-share"></p>
       <div class="plot" id="chart-share"></div>
     </div>
 
     <div class="chart-card">
-      <h2>Penetración de telefonía móvil (abonados cada 100 hab.)</h2>
-      <p class="delta" id="delta-penetracion"></p>
-      <div class="plot" id="chart-penetracion"></div>
+      <h2>Fallecidos por causa del conductor</h2>
+      <p class="delta" id="delta-conductor"></p>
+      <div class="plot" id="chart-conductor"></div>
+    </div>
+
+    <div class="chart-card">
+      <h2>Celulares en uso (cada 100 personas)</h2>
+      <p class="delta" id="delta-celular"></p>
+      <div class="plot" id="chart-celular"></div>
     </div>
   </div>
-
-  <details class="table-view">
-    <summary>Ver los datos en tabla</summary>
-    <table class="data-table" id="data-table">
-      <thead>
-        <tr><th>Año</th><th>Penetración móvil (/100 hab.)</th><th>Fallecidos por atropello</th><th>% imprudencia del peatón</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </details>
 
   <footer class="source">
     Fuentes: CONASET / Carabineros de Chile (siniestros de tránsito, causas desglosadas) y SUBTEL
