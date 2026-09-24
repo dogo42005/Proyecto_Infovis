@@ -36,6 +36,15 @@
   .lede { font-size: 1.08rem; color: var(--text-secondary); max-width: 62ch; margin: 0 0 8px; }
   .lede strong { color: var(--text-primary); }
 
+  .headline {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+    padding: 22px 24px 16px; margin-bottom: 28px;
+  }
+  .headline h2 { font-size: 1.35rem; line-height: 1.25; margin: 0 0 4px; max-width: 34ch; }
+  .headline h2 .accent { color: var(--c-hero); }
+  .headline .sub { font-size: 0.9rem; color: var(--text-secondary); margin: 0 0 14px; }
+  .headline .plot { height: 130px; }
+
   .controls {
     display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
@@ -63,15 +72,27 @@
   .detail dd { margin: 0; font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
   .detail.hero dd { color: var(--c-hero); }
 
-  .charts { display: flex; flex-direction: column; gap: 26px; }
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 8px; }
   .chart-card {
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
-    padding: 18px 18px 6px;
+    padding: 16px 18px;
   }
-  .chart-card h2 { font-size: 1.02rem; margin: 0 0 2px; }
-  .chart-card .delta { font-size: 0.86rem; color: var(--text-secondary); margin: 0 0 6px; }
-  .chart-card .delta strong { font-variant-numeric: tabular-nums; }
+  .chart-card h2 { font-size: 0.86rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 8px; }
   .chart-card.hero { border-color: color-mix(in srgb, var(--c-hero) 35%, var(--border)); }
+  .chart-card:has(details[open]) { grid-column: 1 / -1; }
+
+  .stat-value { font-size: 2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .stat-delta { font-size: 0.86rem; font-weight: 700; margin-top: 4px; }
+  .sparkline { width: 100%; height: 40px; margin-top: 8px; }
+
+  details.chart-detail { margin-top: 10px; }
+  details.chart-detail summary {
+    cursor: pointer; font-size: 0.82rem; font-weight: 700; color: var(--text-muted);
+    padding: 4px 0;
+  }
+  details.chart-detail summary:hover { color: var(--text-secondary); }
+  details.chart-detail .delta { font-size: 0.86rem; color: var(--text-secondary); margin: 10px 0 6px; }
+  details.chart-detail .scope-note { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 10px; }
   .plot { width: 100%; height: 340px; }
 
   footer.source {
@@ -91,6 +112,12 @@
       muertes, justo cuando el celular se volvió más presente en la calle.
     </p>
   </header>
+
+  <section class="headline">
+    <h2>La distracción ya explica <span class="accent" id="headline-pct">—</span> de las muertes en el tránsito</h2>
+    <p class="sub">Peatones y conductores que no prestaban atención, 2010 → 2025 📱</p>
+    <div class="plot" id="chart-distraccion"></div>
+  </section>
 
   <div class="controls">
     <div class="slider-wrap">
@@ -123,26 +150,53 @@
   <div class="charts">
     <div class="chart-card">
       <h2>Fallecidos por atropello</h2>
-      <p class="delta" id="delta-fallecidos"></p>
-      <div class="plot" id="chart-fallecidos"></div>
+      <div class="stat-value" id="stat-fallecidos">—</div>
+      <div class="stat-delta" id="stat-delta-fallecidos"></div>
+      <div class="sparkline" id="spark-fallecidos"></div>
+      <details class="chart-detail">
+        <summary>Ver evolución completa</summary>
+        <p class="delta" id="delta-fallecidos"></p>
+        <p class="scope-note">Solo peatones atropellados.</p>
+        <div class="plot" id="chart-fallecidos"></div>
+      </details>
     </div>
 
     <div class="chart-card hero">
-      <h2>% atribuible al peatón</h2>
-      <p class="delta" id="delta-share"></p>
-      <div class="plot" id="chart-share"></div>
+      <h2>% de fallecidos por el peatón</h2>
+      <div class="stat-value" id="stat-share">—</div>
+      <div class="stat-delta" id="stat-delta-share"></div>
+      <div class="sparkline" id="spark-share"></div>
+      <details class="chart-detail">
+        <summary>Ver evolución completa</summary>
+        <p class="delta" id="delta-share"></p>
+        <p class="scope-note">De los fallecidos por atropello, % atribuido a imprudencia del peatón (no % de accidentes).</p>
+        <div class="plot" id="chart-share"></div>
+      </details>
     </div>
 
     <div class="chart-card">
       <h2>Fallecidos por causa del conductor</h2>
-      <p class="delta" id="delta-conductor"></p>
-      <div class="plot" id="chart-conductor"></div>
+      <div class="stat-value" id="stat-conductor">—</div>
+      <div class="stat-delta" id="stat-delta-conductor"></div>
+      <div class="sparkline" id="spark-conductor"></div>
+      <details class="chart-detail">
+        <summary>Ver evolución completa</summary>
+        <p class="delta" id="delta-conductor"></p>
+        <p class="scope-note">Todo tipo de siniestro (choques, colisiones, etc.), no solo atropellos — por eso puede superar la cifra de fallecidos por atropello.</p>
+        <div class="plot" id="chart-conductor"></div>
+      </details>
     </div>
 
     <div class="chart-card">
       <h2>Celulares en uso (cada 100 personas)</h2>
-      <p class="delta" id="delta-celular"></p>
-      <div class="plot" id="chart-celular"></div>
+      <div class="stat-value" id="stat-celular">—</div>
+      <div class="stat-delta" id="stat-delta-celular"></div>
+      <div class="sparkline" id="spark-celular"></div>
+      <details class="chart-detail">
+        <summary>Ver evolución completa</summary>
+        <p class="delta" id="delta-celular"></p>
+        <div class="plot" id="chart-celular"></div>
+      </details>
     </div>
   </div>
 

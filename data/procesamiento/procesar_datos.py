@@ -167,6 +167,50 @@ def procesar_peatones_calidad():
 
 
 # ---------------------------------------------------------------------------
+# CONASET — "distracción" en sentido estricto: no la categoría completa de
+# imprudencia (que incluye alcohol, cruces fuera del paso, etc.), sino la
+# subcausa basal específica de no prestar atención:
+#   - Peatón:    "Peatón cruza la calzada en forma sorpresiva o descuidada"
+#   - Conductor: "Conducir no atento a las condiciones de tránsito del momento"
+#     (CONASET la renombró "Distracción del conductor" recién en 2025 — el
+#     propio archivo trae una nota al pie confirmándolo — pero la subcausa
+#     basal es la misma y existe desde 2000).
+# OJO: el conteo del conductor antes de ~2010 es un artefacto de clasificación
+# (11 siniestros en 2000 vs >10.000 en 2010), no un cambio real de conducta —
+# quien use esta serie para mostrar evolución debe recortar a 2010 en adelante.
+# ---------------------------------------------------------------------------
+def procesar_distraccion():
+    wb = load_workbook(CRUDA / "Causas_desgregadas_conaset_carabineros2000-2025.xlsx", read_only=True, data_only=True)
+    registros = []
+    for nombre_hoja in wb.sheetnames:
+        if not nombre_hoja.strip().isdigit():
+            continue
+        anio = int(nombre_hoja)
+        ws = wb[nombre_hoja]
+        peaton = {"siniestros": 0, "fallecidos": 0}
+        conductor = {"siniestros": 0, "fallecidos": 0}
+        for fila in ws.iter_rows(min_row=1, max_row=ws.max_row, max_col=4, values_only=True):
+            etiqueta = normalizar(fila[1])
+            if "cruza la calzada" in etiqueta and ("sorpresiv" in etiqueta or "descuidad" in etiqueta):
+                peaton["siniestros"] += fila[2] or 0
+                peaton["fallecidos"] += fila[3] or 0
+            elif "no atento a las condiciones" in etiqueta:
+                conductor["siniestros"] += fila[2] or 0
+                conductor["fallecidos"] += fila[3] or 0
+        registros.append({
+            "anio": anio,
+            "distraccion_peaton_siniestros": peaton["siniestros"],
+            "distraccion_peaton_fallecidos": peaton["fallecidos"],
+            "distraccion_conductor_siniestros": conductor["siniestros"],
+            "distraccion_conductor_fallecidos": conductor["fallecidos"],
+        })
+    wb.close()
+    df = pd.DataFrame(registros).sort_values("anio").reset_index(drop=True)
+    df.to_csv(PROCESADA / "conaset_distraccion.csv", index=False)
+    return df
+
+
+# ---------------------------------------------------------------------------
 # CONASET — causas atribuibles al peatón (imprudencia + alcohol)
 # La etiqueta "Imprudencia de/del Peatón" cambia de redacción entre años,
 # por eso el predicado matchea por substring normalizado, no texto exacto.
@@ -332,6 +376,7 @@ def main():
     peatones_calidad = procesar_peatones_calidad()
     procesar_causas_peaton()
     causas_conductor = procesar_causas_conductor()
+    distraccion = procesar_distraccion()
     procesar_zona_ocurrencia()
     procesar_evolucion_general()
     procesar_tasa_fallecidos_vehiculos()
@@ -340,6 +385,7 @@ def main():
     print(f"abonados_moviles:   {len(abonados)} filas ({abonados['anio'].min()}-{abonados['anio'].max()})")
     print(f"atropello:          {len(atropello)} filas ({atropello['anio'].min()}-{atropello['anio'].max()})")
     print(f"causas_conductor:   {len(causas_conductor)} filas ({causas_conductor['anio'].min()}-{causas_conductor['anio'].max()})")
+    print(f"distraccion:        {len(distraccion)} filas ({distraccion['anio'].min()}-{distraccion['anio'].max()})")
     print(f"dataset_principal:  {len(principal)} filas ({principal['anio'].min()}-{principal['anio'].max()})")
     print(f"\nArchivos escritos en: {PROCESADA}")
 
