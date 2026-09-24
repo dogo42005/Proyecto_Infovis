@@ -2,7 +2,6 @@
 // nunca eje dual) y sincroniza slider + hover + sonificación entre ellos.
 
 const COLOR = {
-  context: '#2a78d6',
   hero: '#1baf7a',
   conductor: '#008300',
   hypothesis: '#4a3aa7',
@@ -171,8 +170,6 @@ async function main() {
 
   // --- deltas en cada card (texto largo, dentro del detalle expandible) ---
   const pctDelta = (a, b) => Math.round((b / a - 1) * 100);
-  document.getElementById('delta-fallecidos').textContent =
-    `${first.atropello_fallecidos} → ${last.atropello_fallecidos} fallecidos (${pctDelta(first.atropello_fallecidos, last.atropello_fallecidos)}% desde ${first.anio})`;
   document.getElementById('delta-share').textContent =
     `${first.imprudencia_share.toFixed(0)}% → ${last.imprudencia_share.toFixed(0)}% (${first.anio}–${last.anio})`;
   document.getElementById('delta-conductor').textContent =
@@ -182,7 +179,6 @@ async function main() {
 
   // --- charts ---
   const charts = [
-    { stat: 'fallecidos', div: 'chart-fallecidos', key: 'atropello_fallecidos', color: COLOR.context, yTitle: 'Fallecidos', tickFormat: ',', suffix: '', fmt: (v) => Math.round(v).toLocaleString('es-CL') },
     { stat: 'share', div: 'chart-share', key: 'imprudencia_share', color: COLOR.hero, yTitle: '% del total', tickFormat: '.0f', suffix: '%', fmt: (v) => `${v.toFixed(0)}%` },
     { stat: 'conductor', div: 'chart-conductor', key: 'conductor_fallecidos', color: COLOR.conductor, yTitle: 'Fallecidos', tickFormat: ',', suffix: '', fmt: (v) => Math.round(v).toLocaleString('es-CL') },
     { stat: 'celular', div: 'chart-celular', key: 'penetracion_cada_100_hab', color: COLOR.hypothesis, yTitle: 'Cada 100 personas', tickFormat: ',.0f', suffix: '', fmt: (v) => Math.round(v).toLocaleString('es-CL') },
