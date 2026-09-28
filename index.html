@@ -58,11 +58,15 @@
   }
   .bar-card h2 { font-size: 0.9rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 6px; }
   .bar-value { font-size: 2.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-  .bar-delta { font-size: 0.88rem; font-weight: 700; margin: 4px 0 12px; }
-  .bar-track { background: var(--baseline); border-radius: 999px; height: 32px; overflow: hidden; }
-  .bar-fill { height: 100%; border-radius: 999px; width: 0%; transition: width 0.25s linear; }
-  #bar-distraccion { background: var(--c-hero); }
-  #bar-celular { background: var(--c-hypothesis); }
+  .bar-delta { font-size: 0.88rem; font-weight: 700; margin: 4px 0 10px; }
+  .line-chart { width: 100%; height: 130px; display: block; overflow: visible; }
+  .line-path { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .line-baseline { stroke: var(--gridline); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .line-marker { stroke: var(--surface-1); stroke-width: 2; vector-effect: non-scaling-stroke; }
+  #chart-distraccion .line-path { stroke: var(--c-hero); }
+  #chart-distraccion .line-marker { fill: var(--c-hero); }
+  #chart-celular .line-path { stroke: var(--c-hypothesis); }
+  #chart-celular .line-marker { fill: var(--c-hypothesis); }
 
   footer.source {
     margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--gridline);
@@ -96,14 +100,22 @@
       <h2>Fallecidos por distracción (peatón + conductor)</h2>
       <div class="bar-value" id="val-distraccion">—</div>
       <div class="bar-delta" id="delta-distraccion"></div>
-      <div class="bar-track"><div class="bar-fill" id="bar-distraccion"></div></div>
+      <svg class="line-chart" id="chart-distraccion" viewBox="0 0 600 130" preserveAspectRatio="none">
+        <line class="line-baseline" x1="0" y1="129" x2="600" y2="129" />
+        <polyline class="line-path" points="" />
+        <circle class="line-marker" r="5" cx="0" cy="0" />
+      </svg>
     </div>
 
     <div class="bar-card">
       <h2>Celulares en uso</h2>
       <div class="bar-value" id="val-celular">—</div>
       <div class="bar-delta" id="delta-celular"></div>
-      <div class="bar-track"><div class="bar-fill" id="bar-celular"></div></div>
+      <svg class="line-chart" id="chart-celular" viewBox="0 0 600 130" preserveAspectRatio="none">
+        <line class="line-baseline" x1="0" y1="129" x2="600" y2="129" />
+        <polyline class="line-path" points="" />
+        <circle class="line-marker" r="5" cx="0" cy="0" />
+      </svg>
     </div>
   </div>
 

@@ -16,6 +16,36 @@ async function fetchCSV(path) {
   });
 }
 
+// El SVG usa un sistema de coordenadas fijo (600×130); preserveAspectRatio
+// "none" en el <svg> lo estira al ancho real de la tarjeta sin distorsionar
+// el grosor de la línea (vector-effect: non-scaling-stroke en el CSS).
+const CHART_W = 600;
+const CHART_H = 130;
+const CHART_PAD_TOP = 10; // headroom para que la línea no toque el borde superior
+
+function pointXY(data, key, max, index) {
+  const x = (index / (data.length - 1)) * CHART_W;
+  const y = CHART_H - (data[index][key] / max) * (CHART_H - CHART_PAD_TOP);
+  return { x, y };
+}
+
+function renderLine(svgId, data, key, max) {
+  const points = data.map((_, i) => {
+    const { x, y } = pointXY(data, key, max, i);
+    return `${x},${y}`;
+  }).join(' ');
+  document.querySelector(`#${svgId} .line-path`).setAttribute('points', points);
+}
+
+function moveMarker(svgId, data, key, max, year) {
+  const idx = data.findIndex((d) => d.anio === year);
+  if (idx === -1) return;
+  const { x, y } = pointXY(data, key, max, idx);
+  const marker = document.querySelector(`#${svgId} .line-marker`);
+  marker.setAttribute('cx', x);
+  marker.setAttribute('cy', y);
+}
+
 async function main() {
   const [principal, distraccion] = await Promise.all([
     fetchCSV('data/procesada/dataset_principal.csv'),
@@ -40,12 +70,13 @@ async function main() {
   const maxDistraccion = Math.max(...data.map((d) => d.distraccion_fallecidos));
   const maxCelular = Math.max(...data.map((d) => d.abonados_moviles));
 
+  renderLine('chart-distraccion', data, 'distraccion_fallecidos', maxDistraccion);
+  renderLine('chart-celular', data, 'abonados_moviles', maxCelular);
+
   const slider = document.getElementById('year-slider');
   const yearBadge = document.getElementById('year-badge');
-  const barDistraccion = document.getElementById('bar-distraccion');
   const valDistraccion = document.getElementById('val-distraccion');
   const deltaDistraccion = document.getElementById('delta-distraccion');
-  const barCelular = document.getElementById('bar-celular');
   const valCelular = document.getElementById('val-celular');
   const deltaCelular = document.getElementById('delta-celular');
 
@@ -61,13 +92,13 @@ async function main() {
     slider.value = year;
     yearBadge.textContent = year;
 
-    barDistraccion.style.width = `${(row.distraccion_fallecidos / maxDistraccion) * 100}%`;
+    moveMarker('chart-distraccion', data, 'distraccion_fallecidos', maxDistraccion, year);
     valDistraccion.textContent = row.distraccion_fallecidos.toLocaleString('es-CL');
     const dDistraccion = pctChange(row.distraccion_fallecidos, first.distraccion_fallecidos);
     deltaDistraccion.textContent = dDistraccion.text;
     deltaDistraccion.style.color = dDistraccion.pct >= 0 ? 'var(--c-hero)' : 'var(--text-muted)';
 
-    barCelular.style.width = `${(row.abonados_moviles / maxCelular) * 100}%`;
+    moveMarker('chart-celular', data, 'abonados_moviles', maxCelular, year);
     valCelular.textContent = row.abonados_moviles.toLocaleString('es-CL');
     const dCelular = pctChange(row.abonados_moviles, first.abonados_moviles);
     deltaCelular.textContent = dCelular.text;
