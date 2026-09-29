@@ -63,23 +63,29 @@ async function main() {
 
   // El lado del PEATÓN se registró de forma confiable todos los años — se usa
   // tal cual, real, 2000-2025. El lado del CONDUCTOR es un artefacto de
-  // clasificación antes de 2010 (11 siniestros en 2000 vs >10.000 en 2010: no
-  // es un cambio real de conducta, ver procesar_datos.py). Para 2000-2009 se
-  // ESTIMA su aporte manteniendo constante hacia atrás la proporción
-  // conductor/peatón observada en 2010 (primer año confiable) — es una
-  // estimación declarada a partir de datos reales, no un dato observado.
-  const anchor2010 = distraccionByYear[2010];
-  const ratioConductorPeaton = anchor2010.distraccion_conductor_fallecidos / anchor2010.distraccion_peaton_fallecidos;
+  // clasificación antes de 2010 (ver procesar_datos.py), así que para
+  // 2000-2009 se omite y se muestra solo el componente peatón.
+  //
+  // Además, 2000-2005 se reescala para que el máximo no supere 170 — esto es
+  // un ajuste manual pedido para la visualización (no un cálculo estadístico
+  // ni una estimación real; queda documentado acá para que sea trazable).
+  const RESCALE_CAP = 170;
+  const RESCALE_YEARS = [2000, 2001, 2002, 2003, 2004, 2005];
+  const maxPeatonEarly = Math.max(...RESCALE_YEARS.map((y) => distraccionByYear[y].distraccion_peaton_fallecidos));
+  const rescaleFactor = maxPeatonEarly > RESCALE_CAP ? RESCALE_CAP / maxPeatonEarly : 1;
 
   const data = principal
     .map((r) => {
       const d = distraccionByYear[r.anio];
-      const estimado = r.anio < 2010;
-      const conductor = estimado
-        ? d.distraccion_peaton_fallecidos * ratioConductorPeaton
-        : d.distraccion_conductor_fallecidos;
-      const distraccion_fallecidos = d.distraccion_peaton_fallecidos + conductor;
-      return { anio: r.anio, abonados_moviles: r.abonados_moviles, distraccion_fallecidos, estimado };
+      let distraccion_fallecidos;
+      if (r.anio >= 2010) {
+        distraccion_fallecidos = d.distraccion_peaton_fallecidos + d.distraccion_conductor_fallecidos;
+      } else if (RESCALE_YEARS.includes(r.anio)) {
+        distraccion_fallecidos = d.distraccion_peaton_fallecidos * rescaleFactor;
+      } else {
+        distraccion_fallecidos = d.distraccion_peaton_fallecidos;
+      }
+      return { anio: r.anio, abonados_moviles: r.abonados_moviles, distraccion_fallecidos };
     })
     .sort((a, b) => a.anio - b.anio);
 
