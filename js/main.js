@@ -29,12 +29,20 @@ function pointXY(data, key, max, index) {
   return { x, y };
 }
 
-function renderLine(svgId, data, key, max) {
-  const points = data.map((_, i) => {
-    const { x, y } = pointXY(data, key, max, i);
-    return `${x},${y}`;
-  }).join(' ');
-  document.querySelector(`#${svgId} .line-path`).setAttribute('points', points);
+// splitYear (opcional): dibuja la línea en dos tramos — punteado/tenue hasta
+// ese año inclusive, sólido después — para distinguir estimación de dato real.
+function renderLine(svgId, data, key, max, splitYear) {
+  const allPoints = data.map((_, i) => pointXY(data, key, max, i));
+  if (!splitYear) {
+    const points = allPoints.map(({ x, y }) => `${x},${y}`).join(' ');
+    document.querySelector(`#${svgId} .line-recent`).setAttribute('points', points);
+    return;
+  }
+  const splitIdx = data.findIndex((d) => d.anio === splitYear);
+  const early = allPoints.slice(0, splitIdx + 1).map(({ x, y }) => `${x},${y}`).join(' ');
+  const recent = allPoints.slice(splitIdx).map(({ x, y }) => `${x},${y}`).join(' ');
+  document.querySelector(`#${svgId} .line-early`).setAttribute('points', early);
+  document.querySelector(`#${svgId} .line-recent`).setAttribute('points', recent);
 }
 
 function moveMarker(svgId, data, key, max, year) {
@@ -53,15 +61,25 @@ async function main() {
   ]);
   const distraccionByYear = Object.fromEntries(distraccion.map((r) => [r.anio, r]));
 
-  // recortado a 2010+: la subcausa "distracción" del conductor es un
-  // artefacto de clasificación antes de esa fecha (ver procesar_datos.py) —
-  // toda la línea de tiempo parte ahí para no tener años sin dato.
+  // El lado del PEATÓN se registró de forma confiable todos los años — se usa
+  // tal cual, real, 2000-2025. El lado del CONDUCTOR es un artefacto de
+  // clasificación antes de 2010 (11 siniestros en 2000 vs >10.000 en 2010: no
+  // es un cambio real de conducta, ver procesar_datos.py). Para 2000-2009 se
+  // ESTIMA su aporte manteniendo constante hacia atrás la proporción
+  // conductor/peatón observada en 2010 (primer año confiable) — es una
+  // estimación declarada a partir de datos reales, no un dato observado.
+  const anchor2010 = distraccionByYear[2010];
+  const ratioConductorPeaton = anchor2010.distraccion_conductor_fallecidos / anchor2010.distraccion_peaton_fallecidos;
+
   const data = principal
-    .filter((r) => r.anio >= 2010)
     .map((r) => {
       const d = distraccionByYear[r.anio];
-      const distraccion_fallecidos = d.distraccion_peaton_fallecidos + d.distraccion_conductor_fallecidos;
-      return { anio: r.anio, abonados_moviles: r.abonados_moviles, distraccion_fallecidos };
+      const estimado = r.anio < 2010;
+      const conductor = estimado
+        ? d.distraccion_peaton_fallecidos * ratioConductorPeaton
+        : d.distraccion_conductor_fallecidos;
+      const distraccion_fallecidos = d.distraccion_peaton_fallecidos + conductor;
+      return { anio: r.anio, abonados_moviles: r.abonados_moviles, distraccion_fallecidos, estimado };
     })
     .sort((a, b) => a.anio - b.anio);
 
@@ -83,7 +101,7 @@ async function main() {
   function pctChange(valorActual, valorBase) {
     const pct = Math.round((valorActual / valorBase - 1) * 100);
     const arrow = pct >= 0 ? '↑' : '↓';
-    return { pct, text: `${arrow} ${Math.abs(pct)}% desde 2010` };
+    return { pct, text: `${arrow} ${Math.abs(pct)}% desde 2000` };
   }
 
   function focusYear(year) {
@@ -93,7 +111,7 @@ async function main() {
     yearBadge.textContent = year;
 
     moveMarker('chart-distraccion', data, 'distraccion_fallecidos', maxDistraccion, year);
-    valDistraccion.textContent = row.distraccion_fallecidos.toLocaleString('es-CL');
+    valDistraccion.textContent = Math.round(row.distraccion_fallecidos).toLocaleString('es-CL');
     const dDistraccion = pctChange(row.distraccion_fallecidos, first.distraccion_fallecidos);
     deltaDistraccion.textContent = dDistraccion.text;
     deltaDistraccion.style.color = dDistraccion.pct >= 0 ? 'var(--c-hero)' : 'var(--text-muted)';
@@ -151,7 +169,7 @@ function setupSonification(data) {
     let lastLayerAt = performance.now();
 
     let i = 0;
-    const stepMs = 1200; // 16 años (2010-2025) a este ritmo: ~19s, tiempo para que se apilen varias capas
+    const stepMs = 750; // 26 años (2000-2025) a este ritmo: ~19.5s, misma duración que antes
 
     const tick = () => {
       if (!playing || i >= data.length) {

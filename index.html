@@ -60,12 +60,13 @@
   .bar-value { font-size: 2.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
   .bar-delta { font-size: 0.88rem; font-weight: 700; margin: 4px 0 10px; }
   .line-chart { width: 100%; height: 130px; display: block; overflow: visible; }
-  .line-path { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .line-recent, .line-early { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .line-early { stroke-dasharray: 5 4; opacity: 0.45; }
   .line-baseline { stroke: var(--gridline); stroke-width: 1; vector-effect: non-scaling-stroke; }
   .line-marker { stroke: var(--surface-1); stroke-width: 2; vector-effect: non-scaling-stroke; }
-  #chart-distraccion .line-path { stroke: var(--c-hero); }
+  #chart-distraccion .line-recent, #chart-distraccion .line-early { stroke: var(--c-hero); }
   #chart-distraccion .line-marker { fill: var(--c-hero); }
-  #chart-celular .line-path { stroke: var(--c-hypothesis); }
+  #chart-celular .line-recent { stroke: var(--c-hypothesis); }
   #chart-celular .line-marker { fill: var(--c-hypothesis); }
 
   footer.source {
@@ -89,8 +90,8 @@
   <div class="controls">
     <div class="slider-wrap">
       <label for="year-slider" style="font-size:0.85rem;color:var(--text-secondary)">Año</label>
-      <input type="range" id="year-slider" min="2010" max="2025" step="1" value="2010">
-      <span class="year-badge" id="year-badge">2010</span>
+      <input type="range" id="year-slider" min="2000" max="2025" step="1" value="2000">
+      <span class="year-badge" id="year-badge">2000</span>
     </div>
     <button id="play-btn" type="button" aria-pressed="false">▶ Reproducir cronología</button>
   </div>
@@ -102,7 +103,8 @@
       <div class="bar-delta" id="delta-distraccion"></div>
       <svg class="line-chart" id="chart-distraccion" viewBox="0 0 600 130" preserveAspectRatio="none">
         <line class="line-baseline" x1="0" y1="129" x2="600" y2="129" />
-        <polyline class="line-path" points="" />
+        <polyline class="line-early" points="" />
+        <polyline class="line-recent" points="" />
         <circle class="line-marker" r="5" cx="0" cy="0" />
       </svg>
     </div>
@@ -113,7 +115,7 @@
       <div class="bar-delta" id="delta-celular"></div>
       <svg class="line-chart" id="chart-celular" viewBox="0 0 600 130" preserveAspectRatio="none">
         <line class="line-baseline" x1="0" y1="129" x2="600" y2="129" />
-        <polyline class="line-path" points="" />
+        <polyline class="line-recent" points="" />
         <circle class="line-marker" r="5" cx="0" cy="0" />
       </svg>
     </div>
