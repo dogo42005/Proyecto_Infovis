@@ -109,26 +109,39 @@ function dibujarGraticula(g) {
   g.innerHTML = html;
 }
 
-// Hasta 10 iconos por país (uno cada ~10% de uso), en una grilla 5x2 centrada
-// en el centroide del país.
+// Hasta 10 iconos por país (uno cada ~10% de uso), repartidos dentro de un
+// círculo alrededor del centroide con patrón de semillas de girasol
+// (phyllotaxis): empieza en el centro y llena hacia afuera, sin dejar un
+// hueco vacío en el medio. La cantidad visible cambia con el año, así que
+// la posición de cada ícono se recalcula cada vez (ver posicionarIconos).
 const ICON_SIZE = 7;
-const ICON_GAP = 1.3;
-const ICON_COLS = 5;
-const ICON_ROWS = 2;
+const ICON_MAX = 10;
+const RING_RADIUS = 9;
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~137.5°, reparte los ángulos sin que se alineen en espiras
 
 function construirMarkupPais(country) {
-  const x0 = -((ICON_COLS - 1) * (ICON_SIZE + ICON_GAP)) / 2;
-  const y0 = -((ICON_ROWS - 1) * (ICON_SIZE + ICON_GAP)) / 2;
   let usos = '';
-  for (let i = 0; i < ICON_COLS * ICON_ROWS; i++) {
-    const col = i % ICON_COLS;
-    const row = Math.floor(i / ICON_COLS);
-    const x = x0 + col * (ICON_SIZE + ICON_GAP) - ICON_SIZE / 2;
-    const y = y0 + row * (ICON_SIZE + ICON_GAP) - ICON_SIZE / 2;
-    usos += `<use class="icono-dispositivo" href="#icono-${i % 3}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${ICON_SIZE}" height="${ICON_SIZE}" style="display:none" />`;
+  for (let i = 0; i < ICON_MAX; i++) {
+    usos += `<use class="icono-dispositivo" href="#icono-${i % 3}" x="${-ICON_SIZE / 2}" y="${-ICON_SIZE / 2}" width="${ICON_SIZE}" height="${ICON_SIZE}" style="display:none" />`;
   }
   return `<g class="pais" data-iso3="${country.iso3}" transform="translate(${country.cx.toFixed(2)},${country.cy.toFixed(2)})">` +
     `<circle class="hit-area" r="15" /><circle class="anillo-activo" r="17" />${usos}</g>`;
+}
+
+// Reparte los primeros `count` <use> de un país dentro del círculo: el
+// primero va al centro (r=0) y los siguientes se alejan en espiral hasta
+// llegar al borde (r=RING_RADIUS) en el último, así el círculo queda
+// relleno en vez de hueco. El resto queda oculto.
+function posicionarIconos(usosEls, count) {
+  for (let i = 0; i < usosEls.length; i++) {
+    const el = usosEls[i];
+    if (i >= count) { el.style.display = 'none'; continue; }
+    el.style.display = '';
+    const r = count === 1 ? 0 : RING_RADIUS * Math.sqrt(i / (count - 1));
+    const angle = i * GOLDEN_ANGLE;
+    el.setAttribute('x', (r * Math.cos(angle) - ICON_SIZE / 2).toFixed(2));
+    el.setAttribute('y', (r * Math.sin(angle) - ICON_SIZE / 2).toFixed(2));
+  }
 }
 
 function construirMapa(countries) {
@@ -186,8 +199,8 @@ async function main() {
     countries.forEach((c) => {
       const pct = c.serie[anio];
       const valor = pct === undefined ? 0 : pct;
-      const count = Math.max(0, Math.min(10, Math.round(valor / 10)));
-      c.usosEls.forEach((el, i) => { el.style.display = i < count ? '' : 'none'; });
+      const count = Math.max(0, Math.min(ICON_MAX, Math.round(valor / 10)));
+      posicionarIconos(c.usosEls, count);
     });
   }
 

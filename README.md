@@ -4,7 +4,7 @@ Visualización multisensorial para la web (HTML, CSS y [Tone.js](https://tonejs.
 
 ## Versión actual en la página (V2, mapa mundial)
 
-`index.html` / `js/main.js` muestran un mapa del mundo donde cada país tiene un cluster de hasta 10 iconos de dispositivos (celular, laptop, computador); la cantidad de iconos visibles es proporcional al % de población que usa internet en ese país y año (≈1 ícono cada 10%).
+`index.html` / `js/main.js` muestran un mapa del mundo donde cada país tiene hasta 10 iconos de dispositivos (celular, laptop, computador) repartidos en el borde de una circunferencia alrededor de su centroide (estilo similar al mapa de puntos de [data.worldbank.org](https://data.worldbank.org/indicator/IT.NET.USER.ZS?view=map)); la cantidad de iconos visibles es proporcional al % de población que usa internet en ese país y año (≈1 ícono cada 10%).
 
 - **Mapa**: proyección equirectangular hecha a mano (sin librería de mapas). El contorno de los continentes es real (Natural Earth, 110m, dominio público) convertido a un `<path>` SVG por `js/main.js` con la misma proyección; los países se ubican por su centroide (lon/lat) sobre ese contorno. No se dibujan fronteras entre países — es un mapa de símbolos proporcionales (pictograma) sobre una base geográfica real, no un mapa coroplético.
 - **Slider de año** (2000-2024) y **scroll del mouse** sobre el mapa: ambos cambian el año mostrado y recalculan los iconos de todos los países.
