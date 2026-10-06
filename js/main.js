@@ -74,6 +74,28 @@ async function cargarIconos(defs) {
   }
 }
 
+function anilloToPath(ring) {
+  return ring.map(([lon, lat], i) => {
+    const { x, y } = project(lon, lat);
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(' ') + 'Z';
+}
+
+function geometryToPath(geometry) {
+  if (geometry.type === 'Polygon') return geometry.coordinates.map(anilloToPath).join(' ');
+  if (geometry.type === 'MultiPolygon') {
+    return geometry.coordinates.map((poly) => poly.map(anilloToPath).join(' ')).join(' ');
+  }
+  return '';
+}
+
+async function dibujarTierra(g) {
+  const res = await fetch('js/mapa/mundo_tierra.geojson');
+  const geojson = await res.json();
+  const d = geojson.features.map((f) => geometryToPath(f.geometry)).join(' ');
+  g.innerHTML = `<path class="tierra" fill-rule="evenodd" d="${d}" />`;
+}
+
 function dibujarGraticula(g) {
   let html = '';
   for (let lon = -180; lon <= 180; lon += 30) {
@@ -130,7 +152,8 @@ async function main() {
 
   const defs = document.querySelector('#mapa-mundo defs');
   const capaGraticula = document.getElementById('capa-graticula');
-  await cargarIconos(defs);
+  const capaTierra = document.getElementById('capa-tierra');
+  await Promise.all([cargarIconos(defs), dibujarTierra(capaTierra)]);
   dibujarGraticula(capaGraticula);
 
   const serieByIso3 = new Map();

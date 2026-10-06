@@ -67,7 +67,8 @@
     border-radius: 10px; padding: 12px; overflow: hidden;
   }
   svg#mapa-mundo { width: 100%; height: auto; display: block; cursor: pointer; }
-  .graticula { stroke: var(--gridline); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .tierra { fill: #182438; stroke: #2a3a5c; stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .graticula { stroke: var(--gridline); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.5; }
   .hit-area { fill: transparent; stroke: none; }
   .hit-area:hover { fill: rgba(79, 209, 197, 0.08); }
   .pais-activo .hit-area { fill: rgba(79, 209, 197, 0.10); }
@@ -134,6 +135,7 @@
       </defs>
       <rect x="0" y="0" width="960" height="480" fill="#0a0e18" />
       <g id="capa-graticula"></g>
+      <g id="capa-tierra"></g>
       <g id="capa-paises"></g>
     </svg>
     <div id="tooltip"><span class="tt-pais"></span> — <span class="tt-pct"></span></div>
@@ -143,9 +145,10 @@
     Fuente de datos: Banco Mundial, <em>Individuals using the Internet (% of population)</em>
     (<code>IT.NET.USER.ZS</code>). Procesamiento en <code>data/procesamiento/procesar_datos_mundial.py</code>,
     resultados en <code>data/procesada_mundial/</code>. Posiciones de país desde
-    <code>gavinr/world-countries-centroids</code> (MIT); iconos de dispositivos desde
-    <code>twitter/twemoji</code> (CC-BY 4.0). Hong Kong, Macao y Kosovo quedan fuera del mapa por no
-    tener un código de país compatible entre ambas fuentes.
+    <code>gavinr/world-countries-centroids</code> (MIT); contorno de continentes desde
+    <code>Natural Earth</code> (dominio público, vía <code>nvkelso/natural-earth-vector</code>); iconos de
+    dispositivos desde <code>twitter/twemoji</code> (CC-BY 4.0). Hong Kong, Macao y Kosovo quedan fuera
+    del mapa de íconos por no tener un código de país compatible entre las fuentes de datos y centroides.
   </footer>
 
 </div>
