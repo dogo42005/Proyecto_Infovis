@@ -1,14 +1,13 @@
 # Proyecto_Infovis
 
-El proyecto es una visualización multisensorial para la web (HTML, CSS, [Plotly.js](https://plotly.com/javascript/) y [Tone.js](https://tonejs.github.io/)) sobre la relación entre el aumento del uso de teléfonos móviles y los accidentes de tránsito en Chile, con foco en el peatón.
+El proyecto es una visualización multisensorial para la web (HTML, CSS y [Tone.js](https://tonejs.github.io/), sin librerías de gráficos) sobre la relación entre el aumento del uso de teléfonos móviles y la distracción como causa de muertes en el tránsito en Chile.
 
-El mensaje central: entre 2000 y 2025 casi todos los indicadores de seguridad vial mejoraron — los atropellos a peatones cayeron a la mitad — pero el peatón es la única pieza que no mejoró: explica cada vez más de esas muertes, justo en los años en que el celular se volvió parte de la calle. Un gráfico titular muestra que la distracción (peatón + conductor, 2010→2025) ya explica un 16 % de las muertes en el tránsito, casi el doble que en 2010.
+El mensaje central: mientras el celular se volvió parte de la calle (los abonados móviles activos se multiplicaron por más de 7 entre 2000 y 2025), los fallecidos por distracción — del peatón y del conductor — no dejan de sumar.
 
 `index.html` / `js/main.js` combinan:
-- Un gráfico titular en barras apiladas con el hallazgo principal.
-- Cuatro paneles de apoyo (fallecidos por atropello, % atribuible al peatón, fallecidos por causa del conductor, uso del celular) como tarjetas de lectura rápida — número grande, delta y silueta de la serie — con el gráfico de línea completo detrás de "Ver evolución completa".
-- Un slider de año y un botón "Reproducir cronología" que sincronizan los cuatro gráficos entre sí.
-- Sonificación: un sonido de choque continuo (`js/sonido/choque-auto.mp3`) cuyo volumen sigue el uso del celular de cada año y cuyo timbre se abre según el % de fallecidos atribuible al peatón — dos parámetros sonoros distintos, no solo volumen.
+- Dos gráficos de línea (SVG simple, dibujado a mano, sin Plotly ni otra librería): fallecidos por distracción y celulares en uso, 2000-2025, cada uno con número grande, % de cambio desde 2000, y un punto marcador que sigue el año activo.
+- Un slider de año y un botón "Reproducir cronología" que sincronizan ambos gráficos y avanzan automáticamente (~19,5 s en total).
+- Sonificación con Tone.js: un sonido de choque (`js/sonido/choque-auto.mp3`) que arranca al iniciar la reproducción, y cada 5 segundos reales se suma otra copia encima — el sonido se vuelve cada vez más caótico a medida que avanza la cronología, sin depender de una rampa de volumen.
 
 ## Fuentes: 
 
@@ -35,10 +34,12 @@ El procesamiento que limpia y consolida estos archivos está en `data/procesamie
 
 ## Datasets usados en la página
 
-De todo lo anterior, `index.html` consume estos cinco (los demás quedan procesados pero sin usar, disponibles para futuras iteraciones):
+De todo lo anterior, `index.html` consume solo estos dos (los demás quedan procesados pero sin usar, disponibles para futuras iteraciones):
 
-- `dataset_principal.csv`: une abonados móviles (SUBTEL) con fallecidos y siniestros por atropello (CONASET), 2000-2025.
-- `conaset_causas_peaton.csv`: fallecidos por imprudencia y alcohol del peatón, 2000-2025.
-- `conaset_causas_conductor.csv`: fallecidos por causas atribuibles al conductor (alcohol, imprudencia, drogas/fatiga, distracción), 2000-2025.
-- `conaset_distraccion.csv`: fallecidos y siniestros por la subcausa específica de "no prestar atención" — peatón que "cruza la calzada en forma sorpresiva o descuidada" y conductor que "no atiende a las condiciones de tránsito del momento" (renombrada "Distracción del conductor" por CONASET recién en 2025) — 2000-2025. Alimenta el gráfico titular, recortado a 2010-2025: antes de esa fecha el conteo del conductor es un artefacto de clasificación de Carabineros, no un cambio real de conducta.
-- `conaset_evolucion_general.csv`: serie histórica de fallecidos en todo tipo de siniestro, 1972-2025. Se usa como denominador del gráfico titular, para calcular qué porcentaje de todas las muertes en el tránsito es por distracción.
+- `dataset_principal.csv`: se usa únicamente la columna de abonados móviles (SUBTEL), 2000-2025.
+- `conaset_distraccion.csv`: fallecidos por la subcausa específica de "no prestar atención" — peatón que "cruza la calzada en forma sorpresiva o descuidada" y conductor que "no atiende a las condiciones de tránsito del momento" (renombrada "Distracción del conductor" por CONASET recién en 2025) — 2000-2025.
+
+`js/main.js` hace dos ajustes sobre `conaset_distraccion.csv` (documentados ahí mismo, no en `procesar_datos.py`):
+
+- **2000-2009**: el componente del conductor es un artefacto de clasificación de Carabineros (pasa de ~11 siniestros en 2000 a más de 10.000 en 2010 — no es un cambio real de conducta), así que para esos años se muestra solo el componente del peatón, que sí se registró de forma confiable en todo el período.
+- **2000-2005**: además, esos valores se reescalan para que el máximo no supere 170. Es un ajuste manual pedido explícitamente para la visualización — no un cálculo estadístico ni una estimación — y queda señalado como tal en el código para que sea trazable.
