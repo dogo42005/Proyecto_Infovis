@@ -56,8 +56,8 @@ function moveMarker(svgId, data, key, max, year) {
 
 async function main() {
   const [principal, distraccion] = await Promise.all([
-    fetchCSV('data/procesada/dataset_principal.csv'),
-    fetchCSV('data/procesada/conaset_distraccion.csv'),
+    fetchCSV('data/procesada_chile/dataset_principal.csv'),
+    fetchCSV('data/procesada_chile/conaset_distraccion.csv'),
   ]);
   const distraccionByYear = Object.fromEntries(distraccion.map((r) => [r.anio, r]));
 

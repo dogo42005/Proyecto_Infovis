@@ -19,7 +19,7 @@ El mensaje central: mientras el celular se volvió parte de la calle (los abonad
 
 ## Datasets
 
-Archivos crudos descargados de las fuentes, en `data/cruda/`:
+Archivos crudos descargados de las fuentes, en `data/cruda_chile/`:
 
 - **Abonados móviles** (SUBTEL): líneas móviles activas por mes, 2000-2026.
 - **Series líneas telefónicas** (SUBTEL): líneas de telefonía fija por mes, 2000-2026.
@@ -30,7 +30,7 @@ Archivos crudos descargados de las fuentes, en `data/cruda/`:
 - **Tasa de fallecidos cada 10.000 vehículos** (CONASET/Carabineros): fallecidos normalizados por tamaño del parque vehicular, 1990-2025.
 - **Tipo de siniestro** (CONASET/Carabineros): siniestros y víctimas por tipo de evento (atropello, choque, colisión, etc.), 2000-2025.
 
-El procesamiento que limpia y consolida estos archivos está en `data/procesamiento/procesar_datos.py`; los resultados quedan en `data/procesada/`.
+El procesamiento que limpia y consolida estos archivos está en `data/procesamiento/procesar_datos_chile.py`; los resultados quedan en `data/procesada_chile/`.
 
 ## Datasets usados en la página
 

@@ -1,9 +1,9 @@
 """
-Consolida los datasets crudos de SUBTEL y CONASET (data/cruda/) en tablas
-limpias por año (data/procesada/).
+Consolida los datasets crudos de SUBTEL y CONASET (data/cruda_chile/) en
+tablas limpias por año (data/procesada_chile/).
 
 Uso:
-    python procesar_datos.py
+    python procesar_datos_chile.py
 """
 import unicodedata
 from pathlib import Path
@@ -12,8 +12,8 @@ import pandas as pd
 from openpyxl import load_workbook
 
 BASE = Path(__file__).resolve().parents[1]
-CRUDA = BASE / "cruda"
-PROCESADA = BASE / "procesada"
+CRUDA = BASE / "cruda_chile"
+PROCESADA = BASE / "procesada_chile"
 PROCESADA.mkdir(exist_ok=True)
 
 
