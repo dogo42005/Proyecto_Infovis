@@ -3,128 +3,149 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>La brecha del peatón — Proyecto InfoVis</title>
+<title>El mundo conectado — Proyecto InfoVis</title>
 <style>
   :root {
     color-scheme: light;
-    --page:        #f9f9f7;
-    --surface-1:   #fcfcfb;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
-    --gridline:       #e1e0d9;
-    --baseline:       #c3c2b7;
-    --border:         rgba(11,11,11,0.10);
-    --c-hero:       #1baf7a;  /* distracción — el hallazgo */
-    --c-hypothesis: #4a3aa7;  /* uso del celular — hipótesis, no prueba */
+    --page:        #0b1220;
+    --surface-1:   #121b2e;
+    --text-primary:   #f2f3f5;
+    --text-secondary: #aab3c5;
+    --text-muted:     #6b7585;
+    --gridline:       #24324a;
+    --border:         rgba(255,255,255,0.10);
+    --c-accent:       #4fd1c5;
+    --c-left:         #ff7a7a;
+    --c-right:        #7ab8ff;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--page); color: var(--text-primary);
     font: 16px/1.55 Arial, Helvetica, sans-serif;
   }
-  .page { max-width: 820px; margin: 0 auto; padding: 40px 24px 80px; }
-  header.hero { margin-bottom: 36px; }
+  .page { max-width: 1040px; margin: 0 auto; padding: 32px 24px 60px; }
+  header.hero { margin-bottom: 28px; }
   .kicker {
     font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em;
     text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
   }
-  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 12px; max-width: 30ch; text-wrap: balance; }
-  h1 .accent { color: var(--c-hero); }
-  .lede { font-size: 1.08rem; color: var(--text-secondary); max-width: 62ch; margin: 0 0 8px; }
+  h1 { font-size: 1.8rem; line-height: 1.25; margin: 0 0 12px; max-width: 36ch; text-wrap: balance; }
+  h1 .accent { color: var(--c-accent); }
+  .lede { font-size: 1.02rem; color: var(--text-secondary); max-width: 68ch; margin: 0 0 8px; }
 
   .controls {
     display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
-    padding: 14px 18px; margin: 0 0 22px;
+    padding: 14px 18px; margin: 18px 0 10px;
   }
   .controls .slider-wrap { display: flex; align-items: center; gap: 10px; flex: 1 1 260px; min-width: 220px; }
-  .controls input[type=range] { flex: 1; accent-color: var(--c-hero); }
+  .controls input[type=range] { flex: 1; accent-color: var(--c-accent); }
   .year-badge {
     font-variant-numeric: tabular-nums; font-weight: 700; min-width: 3.2em; text-align: right;
   }
   button#play-btn {
     font: inherit; font-weight: 700; padding: 8px 16px; border-radius: 999px;
-    border: 1.5px solid var(--text-primary); background: var(--text-primary); color: var(--surface-1);
+    border: 1.5px solid var(--text-primary); background: var(--text-primary); color: var(--page);
     cursor: pointer;
   }
   button#play-btn:hover { opacity: 0.85; }
-  button#play-btn[aria-pressed="true"] { background: var(--c-hero); border-color: var(--c-hero); }
-
-  .bars { display: flex; flex-direction: column; gap: 16px; }
-  .bar-card {
-    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
-    padding: 20px 24px;
+  button#play-btn[aria-pressed="true"] { background: var(--c-accent); border-color: var(--c-accent); }
+  button#stop-audio-btn {
+    font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+    border: 1.5px solid var(--border); background: transparent; color: var(--text-secondary);
+    cursor: pointer;
   }
-  .bar-card h2 { font-size: 0.9rem; font-weight: 700; color: var(--text-secondary); margin: 0 0 6px; }
-  .bar-value { font-size: 2.2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-  .bar-delta { font-size: 0.88rem; font-weight: 700; margin: 4px 0 10px; }
-  .line-chart { width: 100%; height: 130px; display: block; overflow: visible; }
-  .line-recent, .line-early { fill: none; stroke-width: 2; vector-effect: non-scaling-stroke; }
-  .line-early { stroke-dasharray: 5 4; opacity: 0.45; }
-  .line-baseline { stroke: var(--gridline); stroke-width: 1; vector-effect: non-scaling-stroke; }
-  .line-marker { stroke: var(--surface-1); stroke-width: 2; vector-effect: non-scaling-stroke; }
-  #chart-distraccion .line-recent, #chart-distraccion .line-early { stroke: var(--c-hero); }
-  #chart-distraccion .line-marker { fill: var(--c-hero); }
-  #chart-celular .line-recent { stroke: var(--c-hypothesis); }
-  #chart-celular .line-marker { fill: var(--c-hypothesis); }
+  button#stop-audio-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+  .hint {
+    font-size: 0.82rem; color: var(--text-muted); margin: 0 0 16px; line-height: 1.6;
+  }
+  .hint strong { color: var(--text-secondary); }
+
+  .mapa-card {
+    position: relative; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; overflow: hidden;
+  }
+  svg#mapa-mundo { width: 100%; height: auto; display: block; cursor: pointer; }
+  .graticula { stroke: var(--gridline); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .hit-area { fill: transparent; stroke: none; }
+  .hit-area:hover { fill: rgba(79, 209, 197, 0.08); }
+  .pais-activo .hit-area { fill: rgba(79, 209, 197, 0.10); }
+  .anillo-activo {
+    fill: none; stroke-width: 1.4; vector-effect: non-scaling-stroke; opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .pais-activo .anillo-activo { opacity: 1; }
+  .pan-left .anillo-activo { stroke: var(--c-left); }
+  .pan-right .anillo-activo { stroke: var(--c-right); }
+  .pan-center .anillo-activo { stroke: var(--c-accent); }
+  .icono-dispositivo { opacity: 0.92; }
+
+  #tooltip {
+    position: absolute; pointer-events: none; display: none;
+    background: rgba(10, 14, 24, 0.95); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;
+    font-size: 0.82rem; line-height: 1.4; white-space: nowrap; transform: translate(-50%, -120%);
+    z-index: 10;
+  }
+  #tooltip .tt-pais { font-weight: 700; }
+  #tooltip .tt-pct { color: var(--c-accent); font-variant-numeric: tabular-nums; }
 
   footer.source {
-    margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--gridline);
+    margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--gridline);
     font-size: 0.82rem; color: var(--text-muted);
   }
+  footer.source code { color: var(--text-secondary); }
 </style>
 </head>
 <body>
 <div class="page">
 
   <header class="hero">
-    <div class="kicker">Proyecto InfoVis · V1</div>
-    <h1>Chile mejoró casi todo en el tránsito, <span class="accent">menos al peatón</span></h1>
+    <div class="kicker">Proyecto InfoVis · V2</div>
+    <h1>El mundo se llenó de <span class="accent">pantallas</span>, país por país</h1>
     <p class="lede">
-      Mientras el celular se volvió parte de la calle, la distracción — del peatón y del conductor —
-      sigue sumando muertes.
+      Cada ícono representa una fracción de la población de ese país usando internet. A más
+      pantallas, más gente conectada — año por año, desde 2000 hasta 2024.
     </p>
   </header>
 
   <div class="controls">
     <div class="slider-wrap">
       <label for="year-slider" style="font-size:0.85rem;color:var(--text-secondary)">Año</label>
-      <input type="range" id="year-slider" min="2000" max="2025" step="1" value="2000">
+      <input type="range" id="year-slider" min="2000" max="2024" step="1" value="2000">
       <span class="year-badge" id="year-badge">2000</span>
     </div>
     <button id="play-btn" type="button" aria-pressed="false">▶ Reproducir cronología</button>
+    <button id="stop-audio-btn" type="button">◼ Silenciar países</button>
   </div>
 
-  <div class="bars">
-    <div class="bar-card">
-      <h2>Fallecidos por distracción (peatón + conductor)</h2>
-      <div class="bar-value" id="val-distraccion">—</div>
-      <div class="bar-delta" id="delta-distraccion"></div>
-      <svg class="line-chart" id="chart-distraccion" viewBox="0 0 600 130" preserveAspectRatio="none">
-        <line class="line-baseline" x1="0" y1="129" x2="600" y2="129" />
-        <polyline class="line-early" points="" />
-        <polyline class="line-recent" points="" />
-        <circle class="line-marker" r="5" cx="0" cy="0" />
-      </svg>
-    </div>
+  <p class="hint">
+    <strong>Scroll</strong> sobre el mapa para moverte en el tiempo · <strong>hover</strong> sobre un país
+    para ver su dato exacto · <strong>doble clic</strong> en un país para escuchar su cacofonía de
+    notificaciones (más rápida mientras más % de uso tiene) · <strong>un clic</strong> en un país y
+    luego otro clic en un segundo país para escucharlos en estéreo (izquierda / derecha).
+  </p>
 
-    <div class="bar-card">
-      <h2>Celulares en uso</h2>
-      <div class="bar-value" id="val-celular">—</div>
-      <div class="bar-delta" id="delta-celular"></div>
-      <svg class="line-chart" id="chart-celular" viewBox="0 0 600 130" preserveAspectRatio="none">
-        <line class="line-baseline" x1="0" y1="129" x2="600" y2="129" />
-        <polyline class="line-recent" points="" />
-        <circle class="line-marker" r="5" cx="0" cy="0" />
-      </svg>
-    </div>
+  <div class="mapa-card">
+    <svg id="mapa-mundo" viewBox="0 0 960 480" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <!-- Los <symbol> de iconos se inyectan por JS desde js/iconos/*.svg -->
+      </defs>
+      <rect x="0" y="0" width="960" height="480" fill="#0a0e18" />
+      <g id="capa-graticula"></g>
+      <g id="capa-paises"></g>
+    </svg>
+    <div id="tooltip"><span class="tt-pais"></span> — <span class="tt-pct"></span></div>
   </div>
 
   <footer class="source">
-    Fuentes: CONASET / Carabineros de Chile (siniestros de tránsito, causas desglosadas) y SUBTEL
-    (abonados móviles). Datos crudos en <code>data/cruda_chile/</code>, procesamiento reproducible en
-    <code>data/procesamiento/procesar_datos_chile.py</code>.
+    Fuente de datos: Banco Mundial, <em>Individuals using the Internet (% of population)</em>
+    (<code>IT.NET.USER.ZS</code>). Procesamiento en <code>data/procesamiento/procesar_datos_mundial.py</code>,
+    resultados en <code>data/procesada_mundial/</code>. Posiciones de país desde
+    <code>gavinr/world-countries-centroids</code> (MIT); iconos de dispositivos desde
+    <code>twitter/twemoji</code> (CC-BY 4.0). Hong Kong, Macao y Kosovo quedan fuera del mapa por no
+    tener un código de país compatible entre ambas fuentes.
   </footer>
 
 </div>
