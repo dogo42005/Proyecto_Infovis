@@ -1,7 +1,10 @@
-// V2 — mapa mundial de uso de internet: un ícono de dispositivo por cada
-// ~10% de la población conectada, por país y año. Doble clic en un país
-// dispara una cacofonía de notificaciones (mono); un clic en un país y
-// luego otro en un segundo país la pasa a estéreo (izquierda/derecha).
+// V3 — mapa mundial de uso de internet. Cada país es su polígono real
+// (frontera visible, clickeable en toda su superficie). La cantidad de
+// íconos de dispositivos no es solo el % de uso: se pondera por población
+// (usuarios estimados = % × población, escala raíz cuadrada) y se reparte en
+// puntos fijos dentro del país real (ver procesar_datos_mundial.py). Clickear
+// un país lo selecciona — se ocultan los íconos de los demás y solo suena
+// ese país; un botón aparte hace sonar el mundo entero a la vez.
 
 function parseCSVLine(line) {
   const cells = [];
@@ -89,85 +92,29 @@ function geometryToPath(geometry) {
   return '';
 }
 
-async function dibujarTierra(g) {
-  const res = await fetch('js/mapa/mundo_tierra.geojson');
-  const geojson = await res.json();
-  const d = geojson.features.map((f) => geometryToPath(f.geometry)).join(' ');
-  g.innerHTML = `<path class="tierra" fill-rule="evenodd" d="${d}" />`;
-}
-
-function dibujarGraticula(g) {
-  let html = '';
-  for (let lon = -180; lon <= 180; lon += 30) {
-    const x = project(lon, 0).x;
-    html += `<line class="graticula" x1="${x}" y1="0" x2="${x}" y2="${MAP_H}" />`;
+// ISO_A3 viene en "-99" para un puñado de países (Francia, Noruega) en este
+// dataset de Natural Earth; se cae a ADM0_A3 o WB_A3 en esos casos (mismo
+// criterio que data/procesamiento/procesar_datos_mundial.py).
+function codigoPais(props) {
+  for (const campo of ['ISO_A3', 'ADM0_A3', 'WB_A3']) {
+    const v = props[campo];
+    if (v && v !== '-99') return v;
   }
-  for (let lat = -90; lat <= 90; lat += 30) {
-    const y = project(0, lat).y;
-    html += `<line class="graticula" x1="0" y1="${y}" x2="${MAP_W}" y2="${y}" />`;
-  }
-  g.innerHTML = html;
+  return null;
 }
 
-// Hasta 10 iconos por país (uno cada ~10% de uso), repartidos dentro de un
-// círculo alrededor del centroide con patrón de semillas de girasol
-// (phyllotaxis): empieza en el centro y llena hacia afuera, sin dejar un
-// hueco vacío en el medio. La cantidad visible cambia con el año, así que
-// la posición de cada ícono se recalcula cada vez (ver posicionarIconos).
-const ICON_SIZE = 7;
-const ICON_MAX = 10;
-const RING_RADIUS = 9;
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5)); // ~137.5°, reparte los ángulos sin que se alineen en espiras
-
-function construirMarkupPais(country) {
-  let usos = '';
-  for (let i = 0; i < ICON_MAX; i++) {
-    usos += `<use class="icono-dispositivo" href="#icono-${i % 3}" x="${-ICON_SIZE / 2}" y="${-ICON_SIZE / 2}" width="${ICON_SIZE}" height="${ICON_SIZE}" style="display:none" />`;
-  }
-  return `<g class="pais" data-iso3="${country.iso3}" transform="translate(${country.cx.toFixed(2)},${country.cy.toFixed(2)})">` +
-    `<circle class="hit-area" r="15" /><circle class="anillo-activo" r="17" />${usos}</g>`;
-}
-
-// Reparte los primeros `count` <use> de un país dentro del círculo: el
-// primero va al centro (r=0) y los siguientes se alejan en espiral hasta
-// llegar al borde (r=RING_RADIUS) en el último, así el círculo queda
-// relleno en vez de hueco. El resto queda oculto.
-function posicionarIconos(usosEls, count) {
-  for (let i = 0; i < usosEls.length; i++) {
-    const el = usosEls[i];
-    if (i >= count) { el.style.display = 'none'; continue; }
-    el.style.display = '';
-    const r = count === 1 ? 0 : RING_RADIUS * Math.sqrt(i / (count - 1));
-    const angle = i * GOLDEN_ANGLE;
-    el.setAttribute('x', (r * Math.cos(angle) - ICON_SIZE / 2).toFixed(2));
-    el.setAttribute('y', (r * Math.sin(angle) - ICON_SIZE / 2).toFixed(2));
-  }
-}
-
-function construirMapa(countries) {
-  const capaPaises = document.getElementById('capa-paises');
-  capaPaises.innerHTML = countries.map(construirMarkupPais).join('');
-  const porIso3 = new Map(countries.map((c) => [c.iso3, c]));
-  Array.from(capaPaises.children).forEach((g) => {
-    const c = porIso3.get(g.dataset.iso3);
-    if (!c) return;
-    c.g = g;
-    c.usosEls = Array.from(g.querySelectorAll('.icono-dispositivo'));
-  });
-  return porIso3;
-}
+const ICON_SIZE = 6;
 
 async function main() {
-  const [usoRows, centroidRows] = await Promise.all([
+  const [usoRows, iconosRows, puntosRows, paisesGeo] = await Promise.all([
     fetchCSV('data/procesada_mundial/mundial_uso_internet.csv'),
-    fetchCSV('data/procesada_mundial/mundial_centroides.csv'),
+    fetchCSV('data/procesada_mundial/mundial_iconos.csv'),
+    fetchCSV('data/procesada_mundial/mundial_puntos_icono.csv'),
+    fetch('js/mapa/mundo_paises.geojson').then((r) => r.json()),
   ]);
 
   const defs = document.querySelector('#mapa-mundo defs');
-  const capaGraticula = document.getElementById('capa-graticula');
-  const capaTierra = document.getElementById('capa-tierra');
-  await Promise.all([cargarIconos(defs), dibujarTierra(capaTierra)]);
-  dibujarGraticula(capaGraticula);
+  await cargarIconos(defs);
 
   const serieByIso3 = new Map();
   usoRows.forEach((r) => {
@@ -175,39 +122,89 @@ async function main() {
     serieByIso3.get(r.iso3)[r.anio] = r.pct_usuarios_internet;
   });
 
-  const countries = centroidRows
-    .map((r) => {
-      const { x, y } = project(r.lon, r.lat);
-      return { iso3: r.iso3, pais: r.pais, cx: x, cy: y, serie: serieByIso3.get(r.iso3) || {} };
-    })
-    .filter((c) => Object.keys(c.serie).length > 0);
+  const countByIso3Anio = new Map(); // iso3 -> {anio: icono_count}
+  iconosRows.forEach((r) => {
+    if (!countByIso3Anio.has(r.iso3)) countByIso3Anio.set(r.iso3, {});
+    countByIso3Anio.get(r.iso3)[r.anio] = r.icono_count;
+  });
 
-  const countryByIso3 = construirMapa(countries);
+  const puntosByIso3 = new Map(); // iso3 -> [{x,y}] (ya proyectados)
+  puntosRows.forEach((r) => {
+    if (!puntosByIso3.has(r.iso3)) puntosByIso3.set(r.iso3, []);
+    puntosByIso3.get(r.iso3).push(project(r.lon, r.lat));
+  });
+
+  // Capa de fondo: TODOS los países del geojson (177), con su forma real —
+  // da contexto geográfico aunque no tengan datos. Solo los que sí tienen
+  // puntos/uso de internet quedan interactivos (clase .con-datos).
+  const capaFondo = document.getElementById('capa-paises-fondo');
+  const capaIconos = document.getElementById('capa-iconos');
+  const paisesInfo = new Map(); // iso3 -> { pais, serie, puntos, countByAnio }
+
+  let fondoHtml = '';
+  paisesGeo.features.forEach((feat) => {
+    const iso3 = codigoPais(feat.properties);
+    if (!iso3) return;
+    const d = geometryToPath(feat.geometry);
+    const tieneDatos = serieByIso3.has(iso3) && puntosByIso3.has(iso3);
+    fondoHtml += `<path class="pais-borde${tieneDatos ? ' con-datos' : ''}" data-iso3="${iso3}" fill-rule="evenodd" d="${d}" />`;
+    if (tieneDatos) {
+      paisesInfo.set(iso3, {
+        pais: feat.properties.NAME || feat.properties.ADMIN || iso3,
+        serie: serieByIso3.get(iso3),
+        puntos: puntosByIso3.get(iso3),
+        countByAnio: countByIso3Anio.get(iso3) || {},
+      });
+    }
+  });
+  capaFondo.innerHTML = fondoHtml;
+
+  // Capa de íconos: un <g> por país CON datos, con sus <use> ya ubicados en
+  // los puntos precalculados (reposar/ocultar según el año solo cambia
+  // display, no posición).
+  let iconosHtml = '';
+  paisesInfo.forEach((info, iso3) => {
+    let usos = '';
+    info.puntos.forEach(({ x, y }, i) => {
+      usos += `<use class="icono-dispositivo" href="#icono-${i % 3}" x="${(x - ICON_SIZE / 2).toFixed(2)}" y="${(y - ICON_SIZE / 2).toFixed(2)}" width="${ICON_SIZE}" height="${ICON_SIZE}" style="display:none" />`;
+    });
+    iconosHtml += `<g class="pais-iconos" data-iso3="${iso3}">${usos}</g>`;
+  });
+  capaIconos.innerHTML = iconosHtml;
+
+  paisesInfo.forEach((info, iso3) => {
+    info.usosEls = Array.from(capaIconos.querySelector(`[data-iso3="${CSS.escape(iso3)}"]`).children);
+    info.borde = capaFondo.querySelector(`.pais-borde[data-iso3="${CSS.escape(iso3)}"]`);
+  });
 
   const slider = document.getElementById('year-slider');
   const yearBadge = document.getElementById('year-badge');
   const tooltip = document.getElementById('tooltip');
   const mapaCard = document.querySelector('.mapa-card');
-  const capaPaises = document.getElementById('capa-paises');
+  const mapaSvg = document.getElementById('mapa-mundo');
 
   let currentYear = Number(slider.value);
+  let selectedIso3 = null;
+
+  function refrescarIconos() {
+    paisesInfo.forEach((info, iso3) => {
+      const count = info.countByAnio[currentYear] || 0;
+      const mostrarPais = !selectedIso3 || iso3 === selectedIso3;
+      info.usosEls.forEach((el, i) => { el.style.display = (mostrarPais && i < count) ? '' : 'none'; });
+    });
+  }
 
   function setYear(anio) {
     currentYear = anio;
     slider.value = anio;
     yearBadge.textContent = anio;
-    countries.forEach((c) => {
-      const pct = c.serie[anio];
-      const valor = pct === undefined ? 0 : pct;
-      const count = Math.max(0, Math.min(ICON_MAX, Math.round(valor / 10)));
-      posicionarIconos(c.usosEls, count);
-    });
+    refrescarIconos();
   }
 
   function getPct(iso3, anio) {
-    const c = countryByIso3.get(iso3);
-    if (!c) return 0;
-    const v = c.serie[anio];
+    const info = paisesInfo.get(iso3);
+    if (!info) return 0;
+    const v = info.serie[anio];
     return v === undefined ? 0 : v;
   }
 
@@ -218,10 +215,10 @@ async function main() {
     tooltip.style.top = `${evt.clientY - rect.top}px`;
   }
   function showTooltip(iso3, evt) {
-    const c = countryByIso3.get(iso3);
-    if (!c) return;
-    const pct = c.serie[currentYear];
-    tooltip.querySelector('.tt-pais').textContent = c.pais;
+    const info = paisesInfo.get(iso3);
+    if (!info) return;
+    const pct = info.serie[currentYear];
+    tooltip.querySelector('.tt-pais').textContent = info.pais;
     tooltip.querySelector('.tt-pct').textContent =
       pct === undefined ? 'sin dato' : `${pct.toFixed(1)}% usa internet`;
     tooltip.style.display = 'block';
@@ -229,22 +226,23 @@ async function main() {
   }
   function hideTooltip() { tooltip.style.display = 'none'; }
 
-  capaPaises.addEventListener('mouseover', (e) => {
-    const g = e.target.closest('.pais');
-    if (g) showTooltip(g.dataset.iso3, e);
+  capaFondo.addEventListener('mouseover', (e) => {
+    const el = e.target.closest('.pais-borde.con-datos');
+    if (el) showTooltip(el.dataset.iso3, e);
   });
-  capaPaises.addEventListener('mousemove', (e) => {
+  capaFondo.addEventListener('mousemove', (e) => {
     if (tooltip.style.display === 'block') positionTooltip(e);
   });
-  capaPaises.addEventListener('mouseout', (e) => {
-    const g = e.target.closest('.pais');
-    if (!g) return;
-    const related = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest('.pais') : null;
-    if (related !== g) hideTooltip();
+  capaFondo.addEventListener('mouseout', (e) => {
+    const el = e.target.closest('.pais-borde.con-datos');
+    if (!el) return;
+    const related = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest('.pais-borde') : null;
+    if (related !== el) hideTooltip();
   });
 
-  // --- Sonificación: Tone.Panner por país activo, capas de notificación que
-  // se solapan más rápido mientras mayor es el % de uso de ese país. ---
+  // --- Sonificación ---
+  // Todo pasa por un limitador compartido: con "sonido global" pueden sonar
+  // ~170 países a la vez y sin esto saturaría/recortaría el audio.
   const NOTIF_URLS = [
     'js/sonido/notificaciones/u_03k5gu83c1-livechat-129007.mp3',
     'js/sonido/notificaciones/universfield-new-notification-036-485897.mp3',
@@ -252,8 +250,9 @@ async function main() {
   ];
   let notifBuffers = [];
   let layerCounter = 0;
-  const activeCountries = new Map(); // iso3 -> { panner, layers: [], timerId }
-  let activeOrder = []; // hasta 2 iso3, el primero va a la izquierda
+  let masterBus = null;
+  const activeAudio = new Map(); // iso3 -> { layers: [], timerId }
+  let globalSoundOn = false;
 
   function cargarBuffers() {
     return Promise.all(NOTIF_URLS.map((url) => new Promise((resolve) => {
@@ -261,33 +260,15 @@ async function main() {
     }))).then((bufs) => { notifBuffers = bufs; });
   }
 
-  function actualizarEstadoVisual() {
-    countries.forEach((c) => {
-      if (c.g) c.g.classList.remove('pais-activo', 'pan-left', 'pan-right', 'pan-center');
-    });
-    activeOrder.forEach((iso3, idx) => {
-      const c = countryByIso3.get(iso3);
-      if (!c || !c.g) return;
-      c.g.classList.add('pais-activo');
-      c.g.classList.add(activeOrder.length === 1 ? 'pan-center' : (idx === 0 ? 'pan-left' : 'pan-right'));
-    });
-  }
-
-  function reasignarPans() {
-    activeOrder.forEach((iso3, idx) => {
-      const rec = activeCountries.get(iso3);
-      if (!rec) return;
-      rec.panner.pan.value = activeOrder.length === 1 ? 0 : (idx === 0 ? -1 : 1);
-    });
-  }
-
   function spawnLayer(iso3) {
-    const rec = activeCountries.get(iso3);
+    const rec = activeAudio.get(iso3);
     if (!rec || notifBuffers.length === 0) return;
     const buf = notifBuffers[layerCounter % notifBuffers.length];
     layerCounter += 1;
-    const player = new Tone.Player(buf).connect(rec.panner);
-    player.volume.value = -8;
+    const player = new Tone.Player(buf).connect(masterBus);
+    // Con sonido global suenan muchos países a la vez: cada capa parte más
+    // baja para que el conjunto no sature.
+    player.volume.value = globalSoundOn ? -18 : -8;
     player.start(Tone.now() + 0.02);
     rec.layers.push(player);
     setTimeout(() => {
@@ -298,7 +279,7 @@ async function main() {
   }
 
   function scheduleNext(iso3) {
-    const rec = activeCountries.get(iso3);
+    const rec = activeAudio.get(iso3);
     if (!rec) return;
     const pct = getPct(iso3, currentYear);
     // Más % de uso -> intervalo más corto -> las capas se solapan más.
@@ -309,74 +290,94 @@ async function main() {
     }, intervalMs);
   }
 
-  function deactivateCountry(iso3) {
-    const rec = activeCountries.get(iso3);
+  function activarAudioPais(iso3) {
+    if (activeAudio.has(iso3)) return;
+    activeAudio.set(iso3, { layers: [], timerId: null });
+    spawnLayer(iso3);
+    scheduleNext(iso3);
+  }
+
+  function desactivarAudioPais(iso3) {
+    const rec = activeAudio.get(iso3);
     if (!rec) return;
     clearTimeout(rec.timerId);
     rec.layers.forEach((p) => { try { p.stop(); } catch (e) { /* ya se detuvo sola */ } p.dispose(); });
-    rec.panner.dispose();
-    activeCountries.delete(iso3);
-    activeOrder = activeOrder.filter((x) => x !== iso3);
-    actualizarEstadoVisual();
+    activeAudio.delete(iso3);
   }
 
-  function deactivateAll() {
-    [...activeCountries.keys()].forEach(deactivateCountry);
+  function desactivarAudioTodo() {
+    [...activeAudio.keys()].forEach(desactivarAudioPais);
   }
 
-  async function activateCountry(iso3, { solo } = {}) {
+  function actualizarEstadoVisualSeleccion() {
+    paisesInfo.forEach((info) => { if (info.borde) info.borde.classList.remove('seleccionado'); });
+    if (selectedIso3) {
+      const info = paisesInfo.get(selectedIso3);
+      if (info && info.borde) info.borde.classList.add('seleccionado');
+    }
+  }
+
+  function actualizarBotonGlobal() {
+    globalBtn.setAttribute('aria-pressed', String(globalSoundOn));
+    globalBtn.textContent = globalSoundOn ? '◼ Detener sonido global' : '🌐 Sonido global';
+  }
+
+  function deseleccionar() {
+    if (selectedIso3) desactivarAudioPais(selectedIso3);
+    selectedIso3 = null;
+    actualizarEstadoVisualSeleccion();
+    refrescarIconos();
+  }
+
+  function pararSonidoGlobal() {
+    if (!globalSoundOn) return;
+    globalSoundOn = false;
+    desactivarAudioTodo();
+    actualizarBotonGlobal();
+  }
+
+  async function seleccionarPais(iso3) {
+    if (!paisesInfo.has(iso3)) { deseleccionar(); return; }
     await Tone.start();
-    if (solo) deactivateAll();
-    if (activeOrder.length >= 2 && !activeOrder.includes(iso3)) {
-      deactivateCountry(activeOrder[0]);
-    }
-    if (!activeOrder.includes(iso3)) activeOrder.push(iso3);
-    if (!activeCountries.has(iso3)) {
-      const panner = new Tone.Panner(0).toDestination();
-      activeCountries.set(iso3, { panner, layers: [], timerId: null });
-      spawnLayer(iso3);
-      scheduleNext(iso3);
-    }
-    reasignarPans();
-    actualizarEstadoVisual();
+    pararSonidoGlobal();
+    if (selectedIso3 === iso3) { deseleccionar(); return; }
+    if (selectedIso3) desactivarAudioPais(selectedIso3);
+    selectedIso3 = iso3;
+    activarAudioPais(iso3);
+    actualizarEstadoVisualSeleccion();
+    refrescarIconos();
   }
 
-  function toggleSingle(iso3) {
-    if (activeOrder.includes(iso3)) deactivateCountry(iso3);
-    else activateCountry(iso3, { solo: false });
+  async function activarSonidoGlobal() {
+    await Tone.start();
+    deseleccionar();
+    globalSoundOn = true;
+    actualizarBotonGlobal();
+    paisesInfo.forEach((info, iso3) => activarAudioPais(iso3));
   }
 
-  // Distingue un clic simple de la mitad de un doble clic antes de actuar.
-  let clickTimer = null;
-  let pendingIso = null;
-  capaPaises.addEventListener('click', (e) => {
-    const g = e.target.closest('.pais');
-    if (!g) return;
-    const iso3 = g.dataset.iso3;
-    if (clickTimer && pendingIso === iso3) {
-      clearTimeout(clickTimer); clickTimer = null; pendingIso = null;
-      return;
-    }
-    pendingIso = iso3;
-    clickTimer = setTimeout(() => {
-      clickTimer = null; pendingIso = null;
-      toggleSingle(iso3);
-    }, 280);
-  });
-  capaPaises.addEventListener('dblclick', (e) => {
-    const g = e.target.closest('.pais');
-    if (!g) return;
-    clearTimeout(clickTimer); clickTimer = null; pendingIso = null;
-    activateCountry(g.dataset.iso3, { solo: true }).catch((err) => console.error(err));
+  mapaSvg.addEventListener('click', (e) => {
+    const el = e.target.closest('.pais-borde.con-datos');
+    if (el) seleccionarPais(el.dataset.iso3).catch((err) => console.error(err));
+    else deseleccionar();
   });
 
-  document.getElementById('stop-audio-btn').addEventListener('click', deactivateAll);
+  const globalBtn = document.getElementById('global-audio-btn');
+  globalBtn.addEventListener('click', () => {
+    if (globalSoundOn) pararSonidoGlobal();
+    else activarSonidoGlobal().catch((err) => console.error(err));
+  });
+
+  document.getElementById('stop-audio-btn').addEventListener('click', () => {
+    pararSonidoGlobal();
+    deseleccionar();
+  });
 
   // --- Slider, scroll y reproducción automática ---
   slider.addEventListener('input', (e) => setYear(Number(e.target.value)));
 
   let wheelLock = false;
-  document.getElementById('mapa-mundo').addEventListener('wheel', (e) => {
+  mapaSvg.addEventListener('wheel', (e) => {
     e.preventDefault();
     if (wheelLock) return;
     wheelLock = true;
@@ -411,6 +412,7 @@ async function main() {
   }
   playBtn.addEventListener('click', () => { if (playing) stopPlay(); else play(); });
 
+  masterBus = new Tone.Limiter(-3).toDestination();
   setYear(currentYear);
   cargarBuffers();
 }

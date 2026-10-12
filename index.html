@@ -15,8 +15,6 @@
     --gridline:       #24324a;
     --border:         rgba(255,255,255,0.10);
     --c-accent:       #4fd1c5;
-    --c-left:         #ff7a7a;
-    --c-right:        #7ab8ff;
   }
   * { box-sizing: border-box; }
   body {
@@ -56,6 +54,13 @@
     cursor: pointer;
   }
   button#stop-audio-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+  button#global-audio-btn {
+    font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+    border: 1.5px solid var(--c-accent); background: transparent; color: var(--c-accent);
+    cursor: pointer;
+  }
+  button#global-audio-btn:hover { background: rgba(79, 209, 197, 0.12); }
+  button#global-audio-btn[aria-pressed="true"] { background: var(--c-accent); color: var(--page); }
 
   .hint {
     font-size: 0.82rem; color: var(--text-muted); margin: 0 0 16px; line-height: 1.6;
@@ -67,19 +72,14 @@
     border-radius: 10px; padding: 12px; overflow: hidden;
   }
   svg#mapa-mundo { width: 100%; height: auto; display: block; cursor: pointer; }
-  .tierra { fill: #182438; stroke: #2a3a5c; stroke-width: 1; vector-effect: non-scaling-stroke; }
-  .graticula { stroke: var(--gridline); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: 0.5; }
-  .hit-area { fill: transparent; stroke: none; }
-  .hit-area:hover { fill: rgba(79, 209, 197, 0.08); }
-  .pais-activo .hit-area { fill: rgba(79, 209, 197, 0.10); }
-  .anillo-activo {
-    fill: none; stroke-width: 1.4; vector-effect: non-scaling-stroke; opacity: 0;
-    transition: opacity 0.15s;
+  .pais-borde {
+    fill: #182438; stroke: #334762; stroke-width: 0.6; vector-effect: non-scaling-stroke;
+    transition: fill 0.15s, stroke 0.15s;
   }
-  .pais-activo .anillo-activo { opacity: 1; }
-  .pan-left .anillo-activo { stroke: var(--c-left); }
-  .pan-right .anillo-activo { stroke: var(--c-right); }
-  .pan-center .anillo-activo { stroke: var(--c-accent); }
+  .pais-borde.con-datos { cursor: pointer; }
+  .pais-borde.con-datos:hover { fill: #22324e; }
+  .pais-borde.seleccionado { fill: #27405f; stroke: var(--c-accent); stroke-width: 1.6; }
+  #capa-iconos { pointer-events: none; }
   .icono-dispositivo { opacity: 0.92; }
 
   #tooltip {
@@ -103,11 +103,11 @@
 <div class="page">
 
   <header class="hero">
-    <div class="kicker">Proyecto InfoVis · V2</div>
+    <div class="kicker">Proyecto InfoVis · V3</div>
     <h1>El mundo se llenó de <span class="accent">pantallas</span>, país por país</h1>
     <p class="lede">
-      Cada ícono representa una fracción de la población de ese país usando internet. A más
-      pantallas, más gente conectada — año por año, desde 2000 hasta 2024.
+      Cada ícono representa una porción de la gente de ese país usando internet — ponderada por
+      cuánta gente vive ahí, no solo el porcentaje. Año por año, desde 2000 hasta 2024.
     </p>
   </header>
 
@@ -118,14 +118,16 @@
       <span class="year-badge" id="year-badge">2000</span>
     </div>
     <button id="play-btn" type="button" aria-pressed="false">▶ Reproducir cronología</button>
-    <button id="stop-audio-btn" type="button">◼ Silenciar países</button>
+    <button id="global-audio-btn" type="button" aria-pressed="false">🌐 Sonido global</button>
+    <button id="stop-audio-btn" type="button">◼ Silenciar todo</button>
   </div>
 
   <p class="hint">
     <strong>Scroll</strong> sobre el mapa para moverte en el tiempo · <strong>hover</strong> sobre un país
-    para ver su dato exacto · <strong>doble clic</strong> en un país para escuchar su cacofonía de
-    notificaciones (más rápida mientras más % de uso tiene) · <strong>un clic</strong> en un país y
-    luego otro clic en un segundo país para escucharlos en estéreo (izquierda / derecha).
+    para ver su dato exacto · <strong>clic en cualquier parte de un país</strong> lo selecciona: se ocultan
+    los íconos de los demás y empieza a sonar su cacofonía de notificaciones (más rápida mientras más % de
+    uso tiene) — un segundo clic lo deselecciona · <strong>Sonido global</strong> hace sonar todos los
+    países del mapa a la vez.
   </p>
 
   <div class="mapa-card">
@@ -134,21 +136,21 @@
         <!-- Los <symbol> de iconos se inyectan por JS desde js/iconos/*.svg -->
       </defs>
       <rect x="0" y="0" width="960" height="480" fill="#0a0e18" />
-      <g id="capa-graticula"></g>
-      <g id="capa-tierra"></g>
-      <g id="capa-paises"></g>
+      <g id="capa-paises-fondo"></g>
+      <g id="capa-iconos"></g>
     </svg>
     <div id="tooltip"><span class="tt-pais"></span> — <span class="tt-pct"></span></div>
   </div>
 
   <footer class="source">
     Fuente de datos: Banco Mundial, <em>Individuals using the Internet (% of population)</em>
-    (<code>IT.NET.USER.ZS</code>). Procesamiento en <code>data/procesamiento/procesar_datos_mundial.py</code>,
-    resultados en <code>data/procesada_mundial/</code>. Posiciones de país desde
-    <code>gavinr/world-countries-centroids</code> (MIT); contorno de continentes desde
-    <code>Natural Earth</code> (dominio público, vía <code>nvkelso/natural-earth-vector</code>); iconos de
-    dispositivos desde <code>twitter/twemoji</code> (CC-BY 4.0). Hong Kong, Macao y Kosovo quedan fuera
-    del mapa de íconos por no tener un código de país compatible entre las fuentes de datos y centroides.
+    (<code>IT.NET.USER.ZS</code>) y <em>Population, total</em> (<code>SP.POP.TOTL</code>). Procesamiento
+    en <code>data/procesamiento/procesar_datos_mundial.py</code>, resultados en
+    <code>data/procesada_mundial/</code>. La cantidad de íconos por país pondera el % de uso por la
+    población (usuarios estimados = % × población, escala raíz cuadrada), no es solo el %. Fronteras reales
+    desde <code>Natural Earth</code> (dominio público, vía <code>nvkelso/natural-earth-vector</code>);
+    iconos de dispositivos desde <code>twitter/twemoji</code> (CC-BY 4.0). Países muy chicos que Natural
+    Earth no resuelve a esta resolución (110m) quedan fuera del mapa interactivo.
   </footer>
 
 </div>
