@@ -106,10 +106,11 @@ function codigoPais(props) {
 const ICON_SIZE = 6;
 
 async function main() {
-  const [usoRows, iconosRows, puntosRows, paisesGeo] = await Promise.all([
+  const [usoRows, iconosRows, puntosRows, promedioRows, paisesGeo] = await Promise.all([
     fetchCSV('data/procesada_mundial/mundial_uso_internet.csv'),
     fetchCSV('data/procesada_mundial/mundial_iconos.csv'),
     fetchCSV('data/procesada_mundial/mundial_puntos_icono.csv'),
+    fetchCSV('data/procesada_mundial/mundial_promedio.csv'),
     fetch('js/mapa/mundo_paises.geojson').then((r) => r.json()),
   ]);
 
@@ -121,6 +122,9 @@ async function main() {
     if (!serieByIso3.has(r.iso3)) serieByIso3.set(r.iso3, {});
     serieByIso3.get(r.iso3)[r.anio] = r.pct_usuarios_internet;
   });
+
+  const pctMundialByAnio = {}; // anio -> % mundial ponderado por población
+  promedioRows.forEach((r) => { pctMundialByAnio[r.anio] = r.pct_mundial; });
 
   const countByIso3Anio = new Map(); // iso3 -> {anio: icono_count}
   iconosRows.forEach((r) => {
@@ -201,13 +205,6 @@ async function main() {
     refrescarIconos();
   }
 
-  function getPct(iso3, anio) {
-    const info = paisesInfo.get(iso3);
-    if (!info) return 0;
-    const v = info.serie[anio];
-    return v === undefined ? 0 : v;
-  }
-
   // --- Tooltip ---
   function positionTooltip(evt) {
     const rect = mapaCard.getBoundingClientRect();
@@ -241,8 +238,6 @@ async function main() {
   });
 
   // --- Sonificación ---
-  // Todo pasa por un limitador compartido: con "sonido global" pueden sonar
-  // ~170 países a la vez y sin esto saturaría/recortaría el audio.
   const NOTIF_URLS = [
     'js/sonido/notificaciones/u_03k5gu83c1-livechat-129007.mp3',
     'js/sonido/notificaciones/universfield-new-notification-036-485897.mp3',
@@ -251,8 +246,9 @@ async function main() {
   let notifBuffers = [];
   let layerCounter = 0;
   let masterBus = null;
-  const activeAudio = new Map(); // iso3 -> { layers: [], timerId }
+  const activeAudio = new Map(); // iso3 (o GLOBAL_KEY) -> { layers: [], timerId }
   let globalSoundOn = false;
+  const GLOBAL_KEY = '__MUNDO__';
 
   function cargarBuffers() {
     return Promise.all(NOTIF_URLS.map((url) => new Promise((resolve) => {
@@ -266,9 +262,7 @@ async function main() {
     const buf = notifBuffers[layerCounter % notifBuffers.length];
     layerCounter += 1;
     const player = new Tone.Player(buf).connect(masterBus);
-    // Con sonido global suenan muchos países a la vez: cada capa parte más
-    // baja para que el conjunto no sature.
-    player.volume.value = globalSoundOn ? -18 : -8;
+    player.volume.value = -8;
     player.start(Tone.now() + 0.02);
     rec.layers.push(player);
     setTimeout(() => {
@@ -278,12 +272,35 @@ async function main() {
     }, buf.duration * 1000 + 80);
   }
 
+  function getIconCount(iso3, anio) {
+    const info = paisesInfo.get(iso3);
+    if (!info) return 0;
+    const v = info.countByAnio[anio];
+    return v === undefined ? 0 : v;
+  }
+
+  // Devuelve el intervalo en ms para la próxima capa, o null si debe quedar
+  // en silencio por ahora. El país seleccionado sigue la misma cantidad de
+  // íconos que se ve en el mapa ese año (no el % crudo); el sonido global es
+  // UN solo flujo (no 169 en paralelo, para que no sature) que sigue el %
+  // mundial ponderado por población — mismo criterio, a escala del planeta.
+  function intervaloMs(iso3) {
+    if (iso3 === GLOBAL_KEY) {
+      const pct = pctMundialByAnio[currentYear] || 0;
+      return Math.max(150, 1800 - pct * 15.8);
+    }
+    const count = getIconCount(iso3, currentYear);
+    return count === 0 ? null : Math.max(150, 1800 - count * 45.8);
+  }
+
   function scheduleNext(iso3) {
     const rec = activeAudio.get(iso3);
     if (!rec) return;
-    const pct = getPct(iso3, currentYear);
-    // Más % de uso -> intervalo más corto -> las capas se solapan más.
-    const intervalMs = Math.max(150, 1800 - pct * 15.8);
+    const intervalMs = intervaloMs(iso3);
+    if (intervalMs === null) {
+      rec.timerId = setTimeout(() => scheduleNext(iso3), 500);
+      return;
+    }
     rec.timerId = setTimeout(() => {
       spawnLayer(iso3);
       scheduleNext(iso3);
@@ -303,10 +320,6 @@ async function main() {
     clearTimeout(rec.timerId);
     rec.layers.forEach((p) => { try { p.stop(); } catch (e) { /* ya se detuvo sola */ } p.dispose(); });
     activeAudio.delete(iso3);
-  }
-
-  function desactivarAudioTodo() {
-    [...activeAudio.keys()].forEach(desactivarAudioPais);
   }
 
   function actualizarEstadoVisualSeleccion() {
@@ -332,7 +345,7 @@ async function main() {
   function pararSonidoGlobal() {
     if (!globalSoundOn) return;
     globalSoundOn = false;
-    desactivarAudioTodo();
+    desactivarAudioPais(GLOBAL_KEY);
     actualizarBotonGlobal();
   }
 
@@ -353,7 +366,7 @@ async function main() {
     deseleccionar();
     globalSoundOn = true;
     actualizarBotonGlobal();
-    paisesInfo.forEach((info, iso3) => activarAudioPais(iso3));
+    activarAudioPais(GLOBAL_KEY);
   }
 
   mapaSvg.addEventListener('click', (e) => {

@@ -251,10 +251,34 @@ def procesar_fronteras_y_puntos():
     print(f"Archivos escritos en: {salida_puntos} y {salida_conteo}")
 
 
+def procesar_promedio_mundial():
+    """% mundial de uso de internet por año, ponderado por población (suma de
+    usuarios estimados / suma de población) — no el promedio simple de cada
+    país, que le daría a un microestado el mismo peso que a China. Usa los
+    210 países con datos de uso+población, no solo los 169 con polígono."""
+    uso = pd.read_csv(PROCESADA / "mundial_uso_internet.csv")
+    poblacion = pd.read_csv(PROCESADA / "mundial_poblacion.csv")
+    datos = uso.merge(poblacion, on=["iso3", "anio"], how="inner")
+    datos["usuarios_estimados"] = datos["pct_usuarios_internet"] / 100 * datos["poblacion"]
+
+    por_anio = datos.groupby("anio").agg(
+        usuarios_estimados=("usuarios_estimados", "sum"),
+        poblacion=("poblacion", "sum"),
+    )
+    por_anio["pct_mundial"] = por_anio["usuarios_estimados"] / por_anio["poblacion"] * 100
+    por_anio = por_anio.reset_index()[["anio", "pct_mundial", "usuarios_estimados", "poblacion"]]
+
+    salida = PROCESADA / "mundial_promedio.csv"
+    por_anio.to_csv(salida, index=False)
+    print(f"promedio mundial: {len(por_anio)} anios, {por_anio.iloc[0]['pct_mundial']:.1f}% en {ANIO_INICIO} -> {por_anio.iloc[-1]['pct_mundial']:.1f}% en {ANIO_FIN}")
+    print(f"Archivo escrito en: {salida}")
+
+
 def main():
     procesar_uso_internet()
     procesar_centroides()
     procesar_poblacion()
+    procesar_promedio_mundial()
     procesar_fronteras_y_puntos()
 
 
