@@ -403,16 +403,28 @@ async function main() {
   const playBtn = document.getElementById('play-btn');
   let playing = false;
   let playTimer = null;
+  let autoActivoGlobalPorPlay = false;
   function stopPlay() {
     playing = false;
     playBtn.textContent = '▶ Reproducir cronología';
     playBtn.setAttribute('aria-pressed', 'false');
     clearTimeout(playTimer);
+    if (autoActivoGlobalPorPlay) {
+      pararSonidoGlobal();
+      autoActivoGlobalPorPlay = false;
+    }
   }
   function play() {
     playing = true;
     playBtn.textContent = '■ Detener';
     playBtn.setAttribute('aria-pressed', 'true');
+    // Si no hay país seleccionado ni sonido global prendido, la cronología
+    // sonaría en silencio total — se activa el sonido global solo (y se
+    // apaga de nuevo al terminar/detener), así siempre se escucha avanzar.
+    if (!globalSoundOn && !selectedIso3) {
+      autoActivoGlobalPorPlay = true;
+      activarSonidoGlobal().catch((err) => console.error(err));
+    }
     let anio = currentYear >= 2024 ? 2000 : currentYear;
     const tick = () => {
       if (!playing) return;
