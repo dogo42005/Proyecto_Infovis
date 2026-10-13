@@ -125,6 +125,12 @@ async function main() {
 
   const pctMundialByAnio = {}; // anio -> % mundial ponderado por población
   promedioRows.forEach((r) => { pctMundialByAnio[r.anio] = r.pct_mundial; });
+  // El % mundial real va de ~6.7% (2000) a ~72.7% (2024), nunca 0-100 —
+  // estirar el intervalo contra ese rango real (no contra 0-100) hace que el
+  // cambio de ritmo entre el inicio y el final de la cronología se note.
+  const pctMundialValores = promedioRows.map((r) => r.pct_mundial);
+  const pctMundialMin = Math.min(...pctMundialValores);
+  const pctMundialMax = Math.max(...pctMundialValores);
 
   const countByIso3Anio = new Map(); // iso3 -> {anio: icono_count}
   iconosRows.forEach((r) => {
@@ -287,7 +293,8 @@ async function main() {
   function intervaloMs(iso3) {
     if (iso3 === GLOBAL_KEY) {
       const pct = pctMundialByAnio[currentYear] || 0;
-      return Math.max(150, 1800 - pct * 15.8);
+      const t = (pct - pctMundialMin) / (pctMundialMax - pctMundialMin);
+      return Math.max(120, 2200 - t * (2200 - 120));
     }
     const count = getIconCount(iso3, currentYear);
     return count === 0 ? null : Math.max(150, 1800 - count * 45.8);

@@ -33,6 +33,11 @@ PAISES_GEOJSON = MAPA_DIR / "mundo_paises.geojson"
 
 ICON_MAX = 36  # tope de íconos por país (el más poblado/conectado del mundo)
 RNG_SEED = 42  # fija la dispersión de puntos para que sea reproducible
+# Exponente de la escala de ponderación (ver procesar_fronteras_y_puntos): con
+# 0.5 (raíz cuadrada) la diferencia entre 2000 y 2024 casi no se notaba en el
+# mapa (muy comprimida). 0.75 estira más el extremo bajo, así 2000 se ve
+# visiblemente más vacío que 2024 sin perder la ponderación por población.
+ESCALA_EXPONENTE = 0.75
 
 # 2000-2024: rango con cobertura amplia y estable (180-200 países por año).
 # 2025 se excluye porque el Banco Mundial todavía tiene casi todo sin reportar
@@ -188,9 +193,9 @@ def procesar_fronteras_y_puntos():
     """Para cada país: genera una nube fija de puntos dispersos dentro de su
     polígono real (no solo cerca del centroide) y precalcula, por año, cuántos
     de esos puntos se muestran. La cantidad no es solo el % de uso: se pondera
-    por población (usuarios_estimados = % × población) en escala raíz cuadrada
-    — así un país grande y conectado (ej. China) pesa más en el mapa que uno
-    chico con el mismo %, en vez de tratarlos igual."""
+    por población (usuarios_estimados = % × población) en escala potencial
+    (ver ESCALA_EXPONENTE) — así un país grande y conectado (ej. China) pesa
+    más en el mapa que uno chico con el mismo %, en vez de tratarlos igual."""
     with open(PAISES_GEOJSON, encoding="utf-8") as f:
         geo = json.load(f)
     geometria_por_iso3 = {}
@@ -222,9 +227,14 @@ def procesar_fronteras_y_puntos():
 
         pool = max(len(puntos), 1)
         for _, fila in grupo.iterrows():
-            escala = (fila["usuarios_estimados"] / max_usuarios) ** 0.5 if max_usuarios else 0
+            escala = (fila["usuarios_estimados"] / max_usuarios) ** ESCALA_EXPONENTE if max_usuarios else 0
             count = round(ICON_MAX * escala)
-            if fila["pct_usuarios_internet"] > 0:
+            # Piso mínimo SOLO si más de la mitad del país está conectado:
+            # evita que un país chico con, digamos, 99% de uso (ej. Islandia)
+            # se vea en 0 íconos y parezca un error al hacer hover. No se
+            # aplica más abajo del 50% para no diluir el contraste 2000-2024
+            # (casi nadie superaba 50% en 2000; esto no afecta esos años).
+            if fila["pct_usuarios_internet"] > 50:
                 count = max(count, 1)
             count = min(count, pool)
             filas_conteo.append({
