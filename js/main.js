@@ -104,6 +104,7 @@ function codigoPais(props) {
 }
 
 const ICON_SIZE = 6;
+const ICON_MAX = 36; // debe calzar con ICON_MAX en procesar_datos_mundial.py
 
 async function main() {
   const [usoRows, iconosRows, puntosRows, promedioRows, paisesGeo] = await Promise.all([
@@ -297,7 +298,13 @@ async function main() {
       return Math.max(120, 2200 - t * (2200 - 120));
     }
     const count = getIconCount(iso3, currentYear);
-    return count === 0 ? null : Math.max(150, 1800 - count * 45.8);
+    if (count === 0) return null;
+    // Raíz cuadrada en vez de lineal: con una relación lineal, países
+    // "medianos" con pocos íconos (ej. Chile=1, EEUU=9, ambos lejos del
+    // tope 36 de China) sonaban casi igual de lento. La raíz cuadrada estira
+    // justo esa zona baja, así se nota más la diferencia entre ellos.
+    const t = Math.sqrt(count / ICON_MAX);
+    return Math.max(150, 1800 - t * (1800 - 150));
   }
 
   function scheduleNext(iso3) {

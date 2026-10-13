@@ -35,9 +35,12 @@ ICON_MAX = 36  # tope de íconos por país (el más poblado/conectado del mundo)
 RNG_SEED = 42  # fija la dispersión de puntos para que sea reproducible
 # Exponente de la escala de ponderación (ver procesar_fronteras_y_puntos): con
 # 0.5 (raíz cuadrada) la diferencia entre 2000 y 2024 casi no se notaba en el
-# mapa (muy comprimida). 0.75 estira más el extremo bajo, así 2000 se ve
-# visiblemente más vacío que 2024 sin perder la ponderación por población.
-ESCALA_EXPONENTE = 0.75
+# mapa (muy comprimida). Con 0.75 ya se notaba el paso del tiempo, pero países
+# "medianos" quedaban casi iguales entre sí (ej. Chile=2 vs EEUU=13, ambos
+# chicos frente a China=36, sonaban parecido). 1.0 (proporción directa, sin
+# comprimir) separa mejor a los países entre sí y de paso exagera aún más el
+# contraste 2000 vs 2024.
+ESCALA_EXPONENTE = 1.0
 
 # 2000-2024: rango con cobertura amplia y estable (180-200 países por año).
 # 2025 se excluye porque el Banco Mundial todavía tiene casi todo sin reportar
