@@ -63,10 +63,11 @@ function project(lon, lat) {
   return { x: ((lon + 180) / 360) * MAP_W, y: ((90 - lat) / 180) * MAP_H };
 }
 
+// Solo celular: mezclar celular/laptop/computador no aportaba información
+// (el dato es "uso de internet", no "qué dispositivo"), y un único ícono
+// repetido se lee más rápido como "cantidad" en el mapa.
 const ICONOS = [
   ['icono-0', 'js/iconos/1f4f1-celular.svg'],
-  ['icono-1', 'js/iconos/1f4bb-laptop.svg'],
-  ['icono-2', 'js/iconos/1f5a5-computador.svg'],
 ];
 
 async function cargarIconos(defs) {
@@ -104,7 +105,7 @@ function codigoPais(props) {
 }
 
 const ICON_SIZE = 6;
-const ICON_MAX = 36; // debe calzar con ICON_MAX en procesar_datos_mundial.py
+const ICON_MAX = 50; // debe calzar con ICON_MAX en procesar_datos_mundial.py
 
 async function main() {
   const [usoRows, iconosRows, puntosRows, promedioRows, paisesGeo] = await Promise.all([
@@ -177,7 +178,7 @@ async function main() {
   paisesInfo.forEach((info, iso3) => {
     let usos = '';
     info.puntos.forEach(({ x, y }, i) => {
-      usos += `<use class="icono-dispositivo" href="#icono-${i % 3}" x="${(x - ICON_SIZE / 2).toFixed(2)}" y="${(y - ICON_SIZE / 2).toFixed(2)}" width="${ICON_SIZE}" height="${ICON_SIZE}" style="display:none" />`;
+      usos += `<use class="icono-dispositivo" href="#icono-0" x="${(x - ICON_SIZE / 2).toFixed(2)}" y="${(y - ICON_SIZE / 2).toFixed(2)}" width="${ICON_SIZE}" height="${ICON_SIZE}" style="display:none" />`;
     });
     iconosHtml += `<g class="pais-iconos" data-iso3="${iso3}">${usos}</g>`;
   });

@@ -20,6 +20,7 @@ PROCESADA.mkdir(exist_ok=True)
 INDICADOR_CSV = CRUDA / "API_IT.NET.USER.ZS_DS2_en_csv_v2_468465.csv"
 METADATA_PAISES_CSV = CRUDA / "Metadata_Country_API_IT.NET.USER.ZS_DS2_en_csv_v2_468465.csv"
 POBLACION_JSON = CRUDA / "poblacion_total_worldbank.json"
+DENSIDAD_JSON = CRUDA / "densidad_worldbank.json"
 
 # Centroides (lon/lat) por país: dataset abierto (MIT) de
 # github.com/gavinr/world-countries-centroids, viene en ISO2 así que se cruza
@@ -31,16 +32,26 @@ ISO2_ISO3_CSV = MAPA_DIR / "iso2_iso3.csv"
 # Fronteras reales de países (Natural Earth 110m, dominio público).
 PAISES_GEOJSON = MAPA_DIR / "mundo_paises.geojson"
 
-ICON_MAX = 36  # tope de íconos por país (el más poblado/conectado del mundo)
+ICON_MAX = 50  # tope de íconos por país (el más poblado/conectado del mundo)
 RNG_SEED = 42  # fija la dispersión de puntos para que sea reproducible
-# Exponente de la escala de ponderación (ver procesar_fronteras_y_puntos): con
-# 0.5 (raíz cuadrada) la diferencia entre 2000 y 2024 casi no se notaba en el
-# mapa (muy comprimida). Con 0.75 ya se notaba el paso del tiempo, pero países
-# "medianos" quedaban casi iguales entre sí (ej. Chile=2 vs EEUU=13, ambos
-# chicos frente a China=36, sonaban parecido). 1.0 (proporción directa, sin
-# comprimir) separa mejor a los países entre sí y de paso exagera aún más el
-# contraste 2000 vs 2024.
-ESCALA_EXPONENTE = 1.0
+
+# Peso de cada país = usuarios_estimados (% × población) ajustado por su
+# densidad poblacional (gente de verdad apretujada en poco territorio pesa
+# un poco más, no solo "cuántos son en total"). DENSIDAD_EXPONENTE es
+# deliberadamente chico: la densidad es un ajuste fino, no el factor
+# principal — si pesara igual que población×%, el paso del tiempo
+# (2000→2024, que se ve casi solo en el %) se diluiría con dos variables
+# (población, densidad) que casi no cambian de un año a otro.
+DENSIDAD_EXPONENTE = 0.15
+
+# El peso se normaliza contra un percentil alto (no el máximo absoluto) para
+# que un solo país extremo (China) no defina toda la escala él solo: con el
+# máximo absoluto, India/EEUU/Alemania quedaban todos comprimidos muy abajo
+# aunque también tuvieran cientos de millones de usuarios. Con el percentil
+# 99.5, varios países "gigantes" (China, India) llegan juntos al tope en sus
+# mejores años, y el resto de la escala queda con más resolución para
+# separar a países "medianos" entre sí (ej. Chile vs EEUU).
+CAP_PERCENTIL = 0.995
 
 # 2000-2024: rango con cobertura amplia y estable (180-200 países por año).
 # 2025 se excluye porque el Banco Mundial todavía tiene casi todo sin reportar
@@ -122,6 +133,27 @@ def procesar_poblacion():
     print(f"Archivo escrito en: {salida}")
 
 
+def procesar_densidad():
+    """Densidad poblacional (Banco Mundial, personas por km² de superficie),
+    misma fuente/API que población — usada como ajuste fino del peso de cada
+    país (ver procesar_fronteras_y_puntos), no como factor principal."""
+    with open(DENSIDAD_JSON, encoding="utf-8") as f:
+        bruto = json.load(f)[1]
+    metadata = pd.read_csv(METADATA_PAISES_CSV)
+    paises_reales = set(metadata.loc[metadata["Region"].notna(), "Country Code"])
+
+    filas = [
+        {"iso3": r["countryiso3code"], "anio": int(r["date"]), "densidad": r["value"]}
+        for r in bruto
+        if r["value"] is not None and r["countryiso3code"] in paises_reales
+    ]
+    densidad = pd.DataFrame(filas).sort_values(["anio", "iso3"])
+    salida = PROCESADA / "mundial_densidad.csv"
+    densidad.to_csv(salida, index=False)
+    print(f"densidad: {len(densidad)} filas, {densidad['iso3'].nunique()} paises, {ANIO_INICIO}-{ANIO_FIN}")
+    print(f"Archivo escrito en: {salida}")
+
+
 def _codigo_pais(propiedades):
     """ISO_A3 viene en -99 para un puñado de países (Francia, Noruega) en
     Natural Earth; se usa ADM0_A3 o WB_A3 como respaldo en esos casos."""
@@ -179,26 +211,75 @@ def _bbox_de_geometria(geometria):
     return min(lons), min(lats), max(lons), max(lats)
 
 
-def _generar_puntos(geometria, n, rng, intentos_max=6000):
+def _generar_puntos_aleatorios(geometria, n, rng, intentos_max=6000, evitar=None):
+    """Sampleo puro al azar (rejection sampling). Se usa de respaldo para
+    completar lo que la grilla no alcanza a cubrir (países muy chicos/finos)."""
     minlon, minlat, maxlon, maxlat = _bbox_de_geometria(geometria)
+    evitar = evitar or set()
     puntos = []
     intentos = 0
     while len(puntos) < n and intentos < intentos_max:
         lon = rng.uniform(minlon, maxlon)
         lat = rng.uniform(minlat, maxlat)
-        if _punto_en_geometria(lon, lat, geometria):
+        if (round(lon, 6), round(lat, 6)) not in evitar and _punto_en_geometria(lon, lat, geometria):
             puntos.append((lon, lat))
         intentos += 1
+    return puntos
+
+
+def _generar_puntos_grilla(geometria, n, rng, oversample=3):
+    """Grilla con jitter: reparte celdas parejas por todo el bounding box del
+    país (con margen de sobra — `oversample` — porque en países con forma
+    irregular muchas celdas caen fuera del polígono y se descartan) y mueve
+    cada punto al azar dentro de su celda. A diferencia del sampleo 100% al
+    azar, esto evita que los puntos por casualidad queden amontonados en una
+    esquina y deja el territorio cubierto de forma más pareja."""
+    minlon, minlat, maxlon, maxlat = _bbox_de_geometria(geometria)
+    ancho, alto = maxlon - minlon, maxlat - minlat
+    if ancho <= 0 or alto <= 0:
+        return []
+    objetivo_celdas = max(n * oversample, 1)
+    aspecto = ancho / alto
+    filas = max(1, round((objetivo_celdas / aspecto) ** 0.5))
+    cols = max(1, round(objetivo_celdas / filas))
+    paso_lon, paso_lat = ancho / cols, alto / filas
+
+    candidatos = []
+    for i in range(cols):
+        for j in range(filas):
+            cx = minlon + (i + 0.5) * paso_lon
+            cy = minlat + (j + 0.5) * paso_lat
+            lon = cx + (rng.random() - 0.5) * paso_lon * 0.8
+            lat = cy + (rng.random() - 0.5) * paso_lat * 0.8
+            if _punto_en_geometria(lon, lat, geometria):
+                candidatos.append((lon, lat))
+    rng.shuffle(candidatos)
+    return candidatos
+
+
+def _generar_puntos(geometria, n, rng):
+    puntos = _generar_puntos_grilla(geometria, n, rng)[:n]
+    if len(puntos) < n:
+        evitar = {(round(lo, 6), round(la, 6)) for lo, la in puntos}
+        puntos += _generar_puntos_aleatorios(geometria, n - len(puntos), rng, evitar=evitar)
     return puntos
 
 
 def procesar_fronteras_y_puntos():
     """Para cada país: genera una nube fija de puntos dispersos dentro de su
     polígono real (no solo cerca del centroide) y precalcula, por año, cuántos
-    de esos puntos se muestran. La cantidad no es solo el % de uso: se pondera
-    por población (usuarios_estimados = % × población) en escala potencial
-    (ver ESCALA_EXPONENTE) — así un país grande y conectado (ej. China) pesa
-    más en el mapa que uno chico con el mismo %, en vez de tratarlos igual."""
+    de esos puntos se muestran.
+
+    La cantidad no es solo el % de uso: el peso de cada país-año es
+        usuarios_estimados (% × población) × (densidad/densidad_mediana) ^ DENSIDAD_EXPONENTE
+    — población y % hacen la mayor parte del trabajo (y son los que cambian
+    año a año); la densidad es un ajuste fino que favorece algo a los países
+    más "apretados" y penaliza algo a los más dispersos, sin opacar el resto.
+
+    Ese peso se normaliza contra el percentil CAP_PERCENTIL (no el máximo
+    absoluto) para que un solo país extremo (China) no defina toda la escala:
+    con el máximo absoluto, India/EEUU/Alemania quedaban todos comprimidos
+    muy abajo pese a tener también cientos de millones de usuarios."""
     with open(PAISES_GEOJSON, encoding="utf-8") as f:
         geo = json.load(f)
     geometria_por_iso3 = {}
@@ -209,16 +290,20 @@ def procesar_fronteras_y_puntos():
 
     uso = pd.read_csv(PROCESADA / "mundial_uso_internet.csv")
     poblacion = pd.read_csv(PROCESADA / "mundial_poblacion.csv")
-    datos = uso.merge(poblacion, on=["iso3", "anio"], how="inner")
+    densidad = pd.read_csv(PROCESADA / "mundial_densidad.csv")
+    datos = uso.merge(poblacion, on=["iso3", "anio"], how="inner").merge(densidad, on=["iso3", "anio"], how="inner")
     datos["usuarios_estimados"] = datos["pct_usuarios_internet"] / 100 * datos["poblacion"]
     datos = datos[datos["iso3"].isin(geometria_por_iso3)]
 
-    max_usuarios = datos["usuarios_estimados"].max()
+    densidad_mediana = datos["densidad"].median()
+    datos["peso"] = datos["usuarios_estimados"] * (datos["densidad"] / densidad_mediana) ** DENSIDAD_EXPONENTE
+    peso_cap = datos["peso"].quantile(CAP_PERCENTIL)
 
     rng = random.Random(RNG_SEED)
     filas_puntos = []
     filas_conteo = []
     sin_puntos_suficientes = []
+    paises_en_tope = set()
 
     for iso3, grupo in datos.groupby("iso3"):
         geometria = geometria_por_iso3[iso3]
@@ -230,8 +315,10 @@ def procesar_fronteras_y_puntos():
 
         pool = max(len(puntos), 1)
         for _, fila in grupo.iterrows():
-            escala = (fila["usuarios_estimados"] / max_usuarios) ** ESCALA_EXPONENTE if max_usuarios else 0
-            count = round(ICON_MAX * escala)
+            ratio = min(fila["peso"] / peso_cap, 1.0) if peso_cap else 0
+            count = round(ICON_MAX * ratio)
+            if count >= ICON_MAX:
+                paises_en_tope.add((iso3, int(fila["anio"])))
             # Piso mínimo SOLO si más de la mitad del país está conectado:
             # evita que un país chico con, digamos, 99% de uso (ej. Islandia)
             # se vea en 0 íconos y parezca un error al hacer hover. No se
@@ -246,6 +333,7 @@ def procesar_fronteras_y_puntos():
                 "icono_count": count,
                 "pct_usuarios_internet": fila["pct_usuarios_internet"],
                 "poblacion": fila["poblacion"],
+                "densidad": fila["densidad"],
                 "usuarios_estimados": fila["usuarios_estimados"],
             })
 
@@ -260,7 +348,9 @@ def procesar_fronteras_y_puntos():
     print(f"puntos: {len(puntos_df)} en {puntos_df['iso3'].nunique()} paises (tope {ICON_MAX} c/u)")
     if sin_puntos_suficientes:
         print(f"  paises con menos puntos de los pedidos (forma muy chica/delgada): {sin_puntos_suficientes}")
-    print(f"iconos por anio: {len(conteo_df)} filas, max usuarios_estimados = {max_usuarios:,.0f} (normaliza la escala)")
+    paises_en_tope_final = sorted(p for p, a in paises_en_tope if a == ANIO_FIN)
+    print(f"iconos por anio: {len(conteo_df)} filas, cap = percentil {CAP_PERCENTIL} del peso (= {peso_cap:,.0f})")
+    print(f"  paises en el tope ({ICON_MAX}) en {ANIO_FIN}: {paises_en_tope_final}")
     print(f"Archivos escritos en: {salida_puntos} y {salida_conteo}")
 
 
@@ -291,6 +381,7 @@ def main():
     procesar_uso_internet()
     procesar_centroides()
     procesar_poblacion()
+    procesar_densidad()
     procesar_promedio_mundial()
     procesar_fronteras_y_puntos()
 
