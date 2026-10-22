@@ -147,10 +147,11 @@
     (<code>IT.NET.USER.ZS</code>) y <em>Population, total</em> (<code>SP.POP.TOTL</code>). Procesamiento
     en <code>data/procesamiento/procesar_datos_mundial.py</code>, resultados en
     <code>data/procesada_mundial/</code>. La cantidad de íconos por país pondera el % de uso por la
-    población (usuarios estimados = % × población, escala raíz cuadrada), no es solo el %. Fronteras reales
-    desde <code>Natural Earth</code> (dominio público, vía <code>nvkelso/natural-earth-vector</code>);
-    iconos de dispositivos desde <code>twitter/twemoji</code> (CC-BY 4.0). Países muy chicos que Natural
-    Earth no resuelve a esta resolución (110m) quedan fuera del mapa interactivo.
+    población y densidad del país, normalizado contra el percentil 99.5 (no el máximo absoluto), no es
+    solo el %. Fronteras reales desde <code>Natural Earth</code> (dominio público, vía
+    <code>nvkelso/natural-earth-vector</code>); iconos de dispositivos desde
+    <code>twitter/twemoji</code> (CC-BY 4.0). Países muy chicos que Natural Earth no resuelve a esta
+    resolución (110m) quedan fuera del mapa interactivo.
   </footer>
 
 </div>

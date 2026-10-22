@@ -1,10 +1,12 @@
-// V3 — mapa mundial de uso de internet. Cada país es su polígono real
+// V4 — mapa mundial de uso de internet. Cada país es su polígono real
 // (frontera visible, clickeable en toda su superficie). La cantidad de
 // íconos de dispositivos no es solo el % de uso: se pondera por población
-// (usuarios estimados = % × población, escala raíz cuadrada) y se reparte en
-// puntos fijos dentro del país real (ver procesar_datos_mundial.py). Clickear
-// un país lo selecciona — se ocultan los íconos de los demás y solo suena
-// ese país; un botón aparte hace sonar el mundo entero a la vez.
+// y densidad (ver procesar_datos_mundial.py), normalizado contra el
+// percentil 99.5 — no el máximo absoluto — para que un país extremo (China)
+// no defina solo toda la escala, y se reparte en puntos fijos dentro del
+// país real. Clickear un país lo selecciona — se ocultan los íconos de los
+// demás y solo suena ese país; un botón aparte hace sonar el mundo entero a
+// la vez, siguiendo el % mundial ponderado por población.
 
 function parseCSVLine(line) {
   const cells = [];
@@ -301,8 +303,8 @@ async function main() {
     const count = getIconCount(iso3, currentYear);
     if (count === 0) return null;
     // Raíz cuadrada en vez de lineal: con una relación lineal, países
-    // "medianos" con pocos íconos (ej. Chile=1, EEUU=9, ambos lejos del
-    // tope 36 de China) sonaban casi igual de lento. La raíz cuadrada estira
+    // "medianos" con pocos íconos (ej. Chile=2, EEUU=30, ambos lejos del
+    // tope de China) sonaban casi igual de lento. La raíz cuadrada estira
     // justo esa zona baja, así se nota más la diferencia entre ellos.
     const t = Math.sqrt(count / ICON_MAX);
     return Math.max(150, 1800 - t * (1800 - 150));
