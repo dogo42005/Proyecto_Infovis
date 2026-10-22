@@ -1,34 +1,44 @@
 # Proyecto_Infovis
 
-Visualización multisensorial para la web (HTML, CSS y [Tone.js](https://tonejs.github.io/), sin librerías de gráficos). La V1 mostraba la relación entre el aumento del uso de teléfonos móviles y la distracción como causa de muertes en el tránsito en Chile; tras la revisión, el profesor señaló que esa forma de mostrar los gráficos no dejaba ver una relación. El equipo pivotó a mostrar una sola variable — uso de internet en el mundo — en un mapa interactivo en vez de dos variables comparadas en gráficos de línea.
+El proyecto es una visualización multisensorial para la web (HTML, CSS, [Plotly.js](https://plotly.com/javascript/) y [Tone.js](https://tonejs.github.io/)) sobre la relación entre el aumento del uso de teléfonos móviles y los accidentes de tránsito en Chile, con foco en el peatón.
 
-## Versión actual en la página (V3, mapa mundial)
+El mensaje central: entre 2000 y 2025 casi todos los indicadores de seguridad vial mejoraron — los atropellos a peatones cayeron a la mitad — pero el peatón es la única pieza que no mejoró: explica cada vez más de esas muertes, justo en los años en que el celular se volvió parte de la calle. Un gráfico titular muestra que la distracción (peatón + conductor, 2010→2025) ya explica un 16 % de las muertes en el tránsito, casi el doble que en 2010.
 
-`index.html` / `js/main.js` muestran un mapa del mundo con la frontera real de cada país. Dentro de cada uno hay hasta 36 iconos de dispositivos (celular, laptop, computador) repartidos en puntos fijos dentro de su propia superficie (no cerca de un centroide). La cantidad de iconos visibles **no es solo el % de uso de internet**: pondera ese % por la población del país (usuarios estimados = % × población, en proporción directa contra el país más conectado del mundo) — así China (36 iconos, ~1.300 millones de usuarios estimados) pesa mucho más en el mapa que Chile o EEUU, y Chile (1 icono, ~19,7 millones de habitantes) queda claramente por debajo de EEUU (9 iconos, ~340 millones), aunque ambos tengan un % de uso parecido (~95%). El mapa de 2000 se ve casi vacío (9 iconos en total) contra uno bastante lleno en 2024 (223) — a propósito, para que el cambio en el tiempo se note de verdad.
+`index.html` / `js/main.js` combinan:
+- Un gráfico titular en barras apiladas con el hallazgo principal.
+- Cuatro paneles de apoyo (fallecidos por atropello, % atribuible al peatón, fallecidos por causa del conductor, uso del celular) como tarjetas de lectura rápida — número grande, delta y silueta de la serie — con el gráfico de línea completo detrás de "Ver evolución completa".
+- Un slider de año y un botón "Reproducir cronología" que sincronizan los cuatro gráficos entre sí.
+- Sonificación: un sonido de choque continuo (`js/sonido/choque-auto.mp3`) cuyo volumen sigue el uso del celular de cada año y cuyo timbre se abre según el % de fallecidos atribuible al peatón — dos parámetros sonoros distintos, no solo volumen.
 
-- **Mapa**: proyección equirectangular hecha a mano (sin librería de mapas). Cada país es su polígono real (Natural Earth, 110m, dominio público) — frontera visible, relleno propio, y es también el área clickeable completa (no solo un punto central).
-- **Slider de año** (2000-2024) y **scroll del mouse** sobre el mapa: ambos cambian el año mostrado y recalculan los iconos de todos los países.
-- **Botón "Reproducir cronología"**: avanza automáticamente año por año. Si al apretarlo no hay ningún país seleccionado ni el sonido global prendido, activa el sonido global solo por la duración de la reproducción (así la cronología nunca corre en silencio) y lo apaga de nuevo al terminar o detenerla — pero si ya habías prendido el sonido global o seleccionado un país a mano, los respeta y no los apaga.
-- **Hover** sobre un país: tooltip con el nombre del país y su % exacto de uso de internet en el año activo.
-- **Clic en cualquier parte de un país** (no solo el centro) lo selecciona: se ocultan los iconos de todos los demás países y arranca una sonificación de notificaciones (Tone.js) solo para ese país — el intervalo entre capas sigue la misma cantidad de íconos que se ve ese año (no el % crudo, usando raíz cuadrada del conteo para separar bien a los países con pocos iconos entre sí, no solo frente al más grande), así que un país con 0 íconos queda en silencio y uno con muchos suena más caótico. Un segundo clic en el mismo país lo deselecciona (vuelven a verse todos).
-- **Botón "Sonido global"**: un único flujo de sonido (no 169 en paralelo — sonaba demasiado) que sigue el **% mundial de uso de internet ponderado por población** (suma de usuarios estimados / suma de población de todos los países con datos, no el promedio simple entre países), mostrando de nuevo todos los iconos. Va de 6.7% en 2000 a 72.7% en 2024; el intervalo entre capas se estira contra ese rango real (no contra un genérico 0-100%) para que el cambio de ritmo entre el inicio y el final de la cronología se note bien. Todo el audio pasa por un limitador compartido (`Tone.Limiter`).
-- **Botón "Silenciar todo"**: detiene cualquier sonificación activa (selección o global) y deselecciona.
+## Fuentes: 
 
-### Datos
+- [Datos.gob](https://datos.gob.cl/): Datos generales de Chile
 
-- **Uso de internet**: Banco Mundial, *Individuals using the Internet (% of population)* (`IT.NET.USER.ZS`), crudo en `data/cruda_mundial/`. Procesado por `data/procesamiento/procesar_datos_mundial.py`, que descarta los agregados regionales/de ingreso que vienen mezclados con los países en el CSV del Banco Mundial (usando el campo `Region` de los metadatos — vacío en agregados, no en países reales). Resultado: `data/procesada_mundial/mundial_uso_internet.csv` — 210 países, 2000-2024. Se excluyó 2025 porque el Banco Mundial casi no tiene datos reportados todavía para ese año.
-- **Población total**: Banco Mundial, *Population, total* (`SP.POP.TOTL`), bajada directo de su API pública (`data/cruda_mundial/poblacion_total_worldbank.json`). Procesada por la misma función de filtrado de agregados. Resultado: `data/procesada_mundial/mundial_poblacion.csv` — `iso3, anio, poblacion`.
-- **Fronteras de países**: `js/mapa/mundo_paises.geojson`, de [Natural Earth](https://www.naturalearthdata.com/) (dominio público) vía el mirror [nvkelso/natural-earth-vector](https://github.com/nvkelso/natural-earth-vector), resolución 110m (177 países). `js/main.js` lo convierte a `<path>` SVG en el navegador con la misma proyección que ubica los iconos.
-- **Puntos de icono por país y conteo por año**: `data/procesamiento/procesar_datos_mundial.py`, función `procesar_fronteras_y_puntos()`. Para cada país, genera una nube fija de hasta 36 puntos dentro de su polígono real (rejection sampling con punto-en-polígono hecho a mano, semilla fija para que sea reproducible) y precalcula, por año, cuántos de esos puntos se muestran: `36 × (usuarios_estimados / máximo_global) ^ 1.0` (`ESCALA_EXPONENTE` en el script — probamos 0.5/raíz cuadrada, muy comprimido, y 0.75, mejor pero países medianos como Chile y EEUU quedaban casi iguales entre sí por estar ambos lejos del máximo de China; 1.0 es proporción directa, sin comprimir, y los separa mejor). Sin piso mínimo por defecto (si pondera a 0, se ve 0), salvo que el país tenga más de 50% de su población conectada — ahí se fuerza a mostrar al menos 1 ícono para que un caso como Islandia al 98% no se vea vacío y parezca un error; ese piso no afecta el contraste con 2000 porque casi ningún país superaba 50% ese año. Resultado: `mundial_puntos_icono.csv` (`iso3, idx, lon, lat`) y `mundial_iconos.csv` (`iso3, anio, icono_count, pct_usuarios_internet, poblacion, usuarios_estimados`).
-- **% mundial por año**: misma función de ponderación pero agregada a nivel planeta, función `procesar_promedio_mundial()`. Resultado: `mundial_promedio.csv` (`anio, pct_mundial, usuarios_estimados, poblacion`), usado solo por el botón "Sonido global".
-- **Iconos**: SVG de [twitter/twemoji](https://github.com/twitter/twemoji) (CC-BY 4.0) en `js/iconos/` — celular (`1f4f1`), laptop (`1f4bb`) y computador de escritorio (`1f5a5`). No existe un emoji oficial de "tablet" en Unicode, así que no se incluyó.
-- **Sonidos de notificación**: tres efectos en `js/sonido/notificaciones/`, usados para la cacofonía por país. El sonido de choque de auto de la V1 (`js/sonido/choque-auto.mp3`) y los centroides de `js/mapa/paises_centroides.csv` quedan sin uso en esta versión (se mantienen por si una futura iteración los necesita).
+- [CONASET](https://www.conaset.cl/programa/observatorio-datos-estadistica/): Datos accidentes de tránsito
 
-### Limitaciones conocidas
+- [SUBTEL](https://www.subtel.gob.cl/estudios-y-estadisticas/telefonia/): Datos Telefonía
 
-- Natural Earth a 110m no resuelve ~40 países muy chicos (microestados, islas) — quedan fuera del mapa interactivo aunque tengan datos de uso de internet. Fiyi, por su forma partida por el antimeridiano, solo alcanzó 10 de los 36 puntos pedidos.
-- La fórmula de ponderación (proporción directa de usuarios estimados normalizada contra el máximo global, con piso de 1 ícono solo sobre 50% de uso) es una elección de diseño para que el mapa se note legible, el cambio en el tiempo se perciba y los países se distingan entre sí — no es un estándar estadístico ni representa usuarios reales con precisión.
+## Datasets
 
-## Versión anterior (V1, Chile — archivada)
+Archivos crudos descargados de las fuentes, en `data/cruda/`:
 
-La V1 completa (gráficos de línea de fallecidos por distracción vs. abonados móviles en Chile, con su propia sonificación) quedó documentada en [`readme_V1.md`](readme_V1.md) y es recuperable desde el historial de git; el código actual de `index.html`/`js/main.js` ya no la muestra.
+- **Abonados móviles** (SUBTEL): líneas móviles activas por mes, 2000-2026.
+- **Series líneas telefónicas** (SUBTEL): líneas de telefonía fija por mes, 2000-2026.
+- **Series tráfico móviles** (SUBTEL): minutos y llamadas cursadas por red móvil, 2000-2026.
+- **Calidad de participantes** (CONASET/Carabineros): fallecidos y lesionados por rol en el siniestro (peatón, conductor, pasajero), 2000-2025.
+- **Causas desglosadas** (CONASET/Carabineros): siniestros y víctimas por causa atribuida (alcohol, imprudencia, drogas/fatiga, fallas mecánicas, etc.), 2000-2025.
+- **Evolución de siniestros de tránsito** (CONASET/Carabineros): serie histórica general de siniestros, fallecidos y tasa de motorización, 1972-2025.
+- **Tasa de fallecidos cada 10.000 vehículos** (CONASET/Carabineros): fallecidos normalizados por tamaño del parque vehicular, 1990-2025.
+- **Tipo de siniestro** (CONASET/Carabineros): siniestros y víctimas por tipo de evento (atropello, choque, colisión, etc.), 2000-2025.
+
+El procesamiento que limpia y consolida estos archivos está en `data/procesamiento/procesar_datos.py`; los resultados quedan en `data/procesada/`.
+
+## Datasets usados en la página
+
+De todo lo anterior, `index.html` consume estos cinco (los demás quedan procesados pero sin usar, disponibles para futuras iteraciones):
+
+- `dataset_principal.csv`: une abonados móviles (SUBTEL) con fallecidos y siniestros por atropello (CONASET), 2000-2025.
+- `conaset_causas_peaton.csv`: fallecidos por imprudencia y alcohol del peatón, 2000-2025.
+- `conaset_causas_conductor.csv`: fallecidos por causas atribuibles al conductor (alcohol, imprudencia, drogas/fatiga, distracción), 2000-2025.
+- `conaset_distraccion.csv`: fallecidos y siniestros por la subcausa específica de "no prestar atención" — peatón que "cruza la calzada en forma sorpresiva o descuidada" y conductor que "no atiende a las condiciones de tránsito del momento" (renombrada "Distracción del conductor" por CONASET recién en 2025) — 2000-2025. Alimenta el gráfico titular, recortado a 2010-2025: antes de esa fecha el conteo del conductor es un artefacto de clasificación de Carabineros, no un cambio real de conducta.
+- `conaset_evolucion_general.csv`: serie histórica de fallecidos en todo tipo de siniestro, 1972-2025. Se usa como denominador del gráfico titular, para calcular qué porcentaje de todas las muertes en el tránsito es por distracción.
