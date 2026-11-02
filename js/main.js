@@ -211,6 +211,38 @@ async function main() {
     slider.value = anio;
     yearBadge.textContent = anio;
     refrescarIconos();
+    enviarEstadoControl();
+  }
+
+  function enviarEstadoControl() {
+    if (typeof Protobject === 'undefined') return;
+    Protobject.Core.send({
+      type: 'visualization-state',
+      year: currentYear,
+      selectedIso3,
+    }).to('control.html');
+  }
+
+  if (typeof Protobject !== 'undefined') {
+    Protobject.Core.onReceived((message) => {
+      if (!message || typeof message !== 'object') return;
+
+      if (message.type === 'request-countries') {
+        Protobject.Core.send({
+          type: 'countries',
+          countries: Array.from(paisesInfo, ([iso3, info]) => ({ iso3, name: info.pais })),
+          selectedIso3,
+        }).to('control.html');
+      } else if (message.type === 'orientation-year' && Number.isInteger(message.year)) {
+        setYear(Math.max(2000, Math.min(2024, message.year)));
+      } else if (message.type === 'select-country' && typeof message.iso3 === 'string') {
+        if (message.iso3 === '') {
+          deseleccionar();
+        } else if (paisesInfo.has(message.iso3)) {
+          seleccionarPais(message.iso3, false).catch((err) => console.error(err));
+        }
+      }
+    });
   }
 
   // --- Tooltip ---
@@ -351,10 +383,12 @@ async function main() {
   }
 
   function deseleccionar() {
+    const hadSelection = selectedIso3 !== null;
     if (selectedIso3) desactivarAudioPais(selectedIso3);
     selectedIso3 = null;
     actualizarEstadoVisualSeleccion();
     refrescarIconos();
+    if (hadSelection) enviarEstadoControl();
   }
 
   function pararSonidoGlobal() {
@@ -364,16 +398,29 @@ async function main() {
     actualizarBotonGlobal();
   }
 
-  async function seleccionarPais(iso3) {
+  async function seleccionarPais(iso3, toggle = true) {
     if (!paisesInfo.has(iso3)) { deseleccionar(); return; }
-    await Tone.start();
+    let audioReady = true;
+    try {
+      await Tone.start();
+    } catch (err) {
+      audioReady = false;
+      console.error('No se pudo activar el audio desde el control remoto:', err);
+    }
     pararSonidoGlobal();
-    if (selectedIso3 === iso3) { deseleccionar(); return; }
+    if (selectedIso3 === iso3) {
+      if (toggle) deseleccionar();
+      return;
+    }
     if (selectedIso3) desactivarAudioPais(selectedIso3);
     selectedIso3 = iso3;
     activarAudioPais(iso3);
     actualizarEstadoVisualSeleccion();
     refrescarIconos();
+    enviarEstadoControl();
+    if (!audioReady && typeof Protobject !== 'undefined') {
+      Protobject.Core.send({ type: 'audio-warning' }).to('control.html');
+    }
   }
 
   async function activarSonidoGlobal() {

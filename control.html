@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Control móvil — El mundo conectado</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font: 16px/1.5 Arial, Helvetica, sans-serif;
+      background: #0b1220;
+      color: #f2f3f5;
+    }
+    body { margin: 0; padding: 24px; }
+    main { max-width: 520px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; }
+    label { display: block; margin: 28px 0 8px; }
+    select { width: 100%; padding: 12px; font: inherit; }
+    #estado { color: #aab3c5; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Control de la visualización</h1>
+    <p id="estado" role="status">Conecta este teléfono desde el botón + de Protobject en la visualización.</p>
+    <label for="pais">Seleccionar país</label>
+    <select id="pais" disabled>
+      <option value="">Todos los países</option>
+    </select>
+    <p>Gira el teléfono horizontalmente para cambiar el año. El giro completo se divide en 25 bandas, una por año.</p>
+    <p id="lectura">Esperando orientación…</p>
+  </main>
+
+  <script src="https://app.protobject.com/framework/p.js"></script>
+  <script src="config.js"></script>
+  <script src="js/protobject-control.js" defer></script>
+</body>
+</html>
