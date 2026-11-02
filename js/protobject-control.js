@@ -23,6 +23,10 @@ let browserSensorStarted = false;
 let sensorTimeout = null;
 let lastProtobjectReadingAt = 0;
 
+sensorReadout.textContent = protobjectSensorSupported || window.DeviceOrientationEvent
+  ? 'listo para activar'
+  : 'no compatible';
+
 function sendToVisualization(message) {
   Protobject.Core.send(message).to('index.html');
 }
@@ -196,7 +200,7 @@ Protobject.Core.onReceived((message) => {
     countrySelect.disabled = false;
     countrySelect.value = message.selectedIso3 || selected || '';
     connected = true;
-    connectionStatus.textContent = orientationSupported
+    connectionStatus.textContent = protobjectSensorSupported
       ? 'Teléfono conectado a la visualización.'
       : 'Teléfono conectado; este navegador no expone el sensor de orientación que usa Protobject.';
     stopCountryRequests();
