@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Control móvil — El mundo conectado</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font: 16px/1.5 Arial, Helvetica, sans-serif;
+      background: #0b1220;
+      color: #f2f3f5;
+    }
+    body { margin: 0; padding: 24px; }
+    main { max-width: 520px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; }
+    label { display: block; margin: 28px 0 8px; }
+    select { width: 100%; padding: 12px; font: inherit; }
+    #estado { color: #aab3c5; }
+    .compass { display: grid; justify-items: center; gap: 12px; margin: 24px 0; }
+    .dial {
+      position: relative; width: 190px; aspect-ratio: 1; border: 2px solid #4fd1c5;
+      border-radius: 50%; color: #aab3c5; background: #121b2e;
+    }
+    .north { position: absolute; top: 8px; left: 50%; color: #4fd1c5; font-weight: 700; transform: translateX(-50%); }
+    .east, .south, .west { position: absolute; transform: translate(-50%, -50%); }
+    .east { top: 50%; right: 3px; }
+    .south { bottom: 3px; left: 50%; }
+    .west { top: 50%; left: 12px; }
+    .needle {
+      position: absolute; top: 50%; left: 50%; width: 4px; height: 66px;
+      background: linear-gradient(to bottom, #f2f3f5 0 50%, #4fd1c5 50% 100%);
+      border-radius: 4px; transform: translate(-50%, -100%) rotate(0deg);
+      transform-origin: 50% 100%;
+    }
+    .needle::after {
+      position: absolute; top: -8px; left: 50%; width: 0; height: 0;
+      border-right: 7px solid transparent; border-bottom: 10px solid #f2f3f5;
+      border-left: 7px solid transparent; content: ""; transform: translateX(-50%);
+    }
+    .readings { margin: 0; text-align: center; font-variant-numeric: tabular-nums; }
+    #activar-brujula {
+      padding: 10px 16px; border: 1px solid #4fd1c5; border-radius: 999px;
+      background: #4fd1c5; color: #0b1220; font: inherit; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Control de la visualización</h1>
+    <p id="estado" role="status">Conecta este teléfono desde el botón + de Protobject en la visualización.</p>
+    <section class="compass" aria-label="Brújula del teléfono">
+      <div class="dial" aria-hidden="true">
+        <span class="north">N</span><span class="east">E</span><span class="south">S</span><span class="west">O</span>
+        <span id="aguja" class="needle"></span>
+      </div>
+      <p class="readings">
+        Rumbo horizontal: <strong id="rumbo">—</strong><br>
+        Ángulo vertical: <strong id="vertical">—</strong><br>
+        Año asignado: <strong id="anio-orientacion">—</strong><br>
+        Sensor: <strong id="sensor-usado">cargando…</strong>
+      </p>
+      <button id="activar-brujula" type="button">Activar brújula</button>
+    </section>
+    <label for="pais">Seleccionar país</label>
+    <select id="pais" disabled>
+      <option value="">Todos los países</option>
+    </select>
+    <p>Con el teléfono plano, gíralo sobre la mesa como una brújula. El giro horario desde el norte recorre los años 2000–2024 en 25 bandas de 14,4°.</p>
+  </main>
+
+  <script src="https://app.protobject.com/framework/p.js"></script>
+  <script src="config.js"></script>
+  <script src="js/protobject-control.js?v=3" defer></script>
+</body>
+</html>
