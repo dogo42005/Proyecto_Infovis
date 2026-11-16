@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:infovis.alessiobellino.com)",
+      "PowerShell(git push)"
+    ]
+  }
+}
