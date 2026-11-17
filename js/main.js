@@ -218,10 +218,14 @@ async function main() {
 
   function enviarEstadoControl() {
     if (typeof Protobject === 'undefined') return;
+    // El teléfono vibra con el mismo ritmo que la sonificación que está
+    // sonando (país seleccionado o global); null = silencio, no vibra.
+    const audioKey = selectedIso3 || (globalSoundOn ? GLOBAL_KEY : null);
     Protobject.Core.send({
       type: 'visualization-state',
       year: currentYear,
       selectedIso3,
+      pulseIntervalMs: audioKey ? intervaloMs(audioKey) : null,
     }).to('control.html');
   }
 
@@ -239,7 +243,8 @@ async function main() {
         setYear(Math.max(2000, Math.min(2024, message.year)));
       } else if (message.type === 'select-country' && typeof message.iso3 === 'string') {
         if (message.iso3 === '') {
-          deseleccionar();
+          // "Todos los países" en el teléfono equivale al botón "Sonido global".
+          if (!globalSoundOn) activarSonidoGlobal().catch((err) => console.error(err));
         } else if (paisesInfo.has(message.iso3)) {
           seleccionarPais(message.iso3, false).catch((err) => console.error(err));
         }
@@ -398,6 +403,7 @@ async function main() {
     globalSoundOn = false;
     desactivarAudioPais(GLOBAL_KEY);
     actualizarBotonGlobal();
+    enviarEstadoControl();
   }
 
   async function seleccionarPais(iso3, toggle = true) {
@@ -431,6 +437,7 @@ async function main() {
     globalSoundOn = true;
     actualizarBotonGlobal();
     activarAudioPais(GLOBAL_KEY);
+    enviarEstadoControl();
   }
 
   mapaSvg.addEventListener('click', (e) => {

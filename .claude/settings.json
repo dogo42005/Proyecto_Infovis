@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:infovis.alessiobellino.com)",
-      "PowerShell(git push)"
+      "PowerShell(git push)",
+      "PowerShell(python -m pip install reportlab --quiet)",
+      "PowerShell(python -c \"import reportlab; print\\(reportlab.Version\\)\")",
+      "PowerShell(New-Item -ItemType Directory -Force fisicalizacion)",
+      "PowerShell(python -I \"C:\\\\Users\\\\djop4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-djop4-OneDrive---Universidad-Cat-lica-de-Chile-Escritorio-Repos-Proyecto-Infovis\\\\0bb9a1e2-698c-44d0-b4e6-88de7fb13fc3\\\\scratchpad\\\\plantilla.py\" \"fisicalizacion\\\\plantilla_anios_flecha.pdf\")",
+      "PowerShell(node --check js/protobject-control.js)",
+      "PowerShell(node --check js/main.js)"
     ]
   }
 }

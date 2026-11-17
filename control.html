@@ -16,7 +16,10 @@
     h1 { font-size: 1.5rem; }
     label { display: block; margin: 28px 0 8px; }
     select { width: 100%; padding: 12px; font: inherit; }
-    #estado { color: #aab3c5; }
+    #estado, .hint { color: #aab3c5; }
+    .vibration { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0 0; }
+    .vibration input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; }
+    .hint { margin: 4px 0 0; font-size: 0.875rem; }
     .compass { display: grid; justify-items: center; gap: 12px; margin: 24px 0; }
     .dial {
       position: relative; width: 190px; aspect-ratio: 1; border: 2px solid #4fd1c5;
@@ -62,6 +65,11 @@
       </p>
       <button id="activar-brujula" type="button">Activar brújula</button>
     </section>
+    <label class="vibration">
+      <input id="vibracion" type="checkbox" checked>
+      Vibración: un toque por año y pulsos al ritmo de las notificaciones
+    </label>
+    <p id="vibracion-estado" class="hint"></p>
     <label for="pais">Seleccionar país</label>
     <select id="pais" disabled>
       <option value="">Todos los países</option>
@@ -71,6 +79,6 @@
 
   <script src="https://app.protobject.com/framework/p.js"></script>
   <script src="config.js"></script>
-  <script src="js/protobject-control.js?v=3" defer></script>
+  <script src="js/protobject-control.js?v=5" defer></script>
 </body>
 </html>

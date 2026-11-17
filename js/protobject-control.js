@@ -12,7 +12,15 @@ const yearReadout = document.getElementById('anio-orientacion');
 const sensorReadout = document.getElementById('sensor-usado');
 const compassNeedle = document.getElementById('aguja');
 const activateButton = document.getElementById('activar-brujula');
+const vibrationToggle = document.getElementById('vibracion');
+const vibrationReadout = document.getElementById('vibracion-estado');
 const protobjectSensorSupported = 'AbsoluteOrientationSensor' in window;
+const vibrationSupported = typeof navigator.vibrate === 'function';
+
+// Pulso corto al cruzar de año (clic táctil) y pulso de "notificación" que
+// sigue el mismo ritmo que la sonificación del computador.
+const YEAR_TICK_MS = 15;
+const NOTIFICATION_BUZZ_MS = 50;
 
 let connected = false;
 let currentBand = null;
@@ -22,6 +30,60 @@ let sensorStarted = false;
 let browserSensorStarted = false;
 let sensorTimeout = null;
 let lastProtobjectReadingAt = 0;
+let pulseIntervalMs = null;
+let pulseTimer = null;
+
+function vibrationEnabled() {
+  return vibrationSupported && vibrationToggle.checked;
+}
+
+function vibrate(pattern) {
+  if (!vibrationEnabled()) return;
+  try {
+    navigator.vibrate(pattern);
+  } catch (error) {
+    // El navegador puede bloquearla hasta que haya un toque en la página.
+  }
+}
+
+function stopNotificationPulse() {
+  if (pulseTimer !== null) {
+    clearTimeout(pulseTimer);
+    pulseTimer = null;
+  }
+}
+
+function scheduleNotificationPulse() {
+  stopNotificationPulse();
+  if (!vibrationEnabled() || pulseIntervalMs === null) return;
+  pulseTimer = setTimeout(() => {
+    vibrate(NOTIFICATION_BUZZ_MS);
+    scheduleNotificationPulse();
+  }, pulseIntervalMs);
+}
+
+function updatePulseInterval(intervalMs) {
+  const next = Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : null;
+  if (next === pulseIntervalMs) return;
+  pulseIntervalMs = next;
+  scheduleNotificationPulse();
+}
+
+if (!vibrationSupported) {
+  vibrationToggle.checked = false;
+  vibrationToggle.disabled = true;
+  vibrationReadout.textContent = 'no compatible con este navegador (iPhone no la permite)';
+}
+
+vibrationToggle.addEventListener('change', () => {
+  if (vibrationToggle.checked) {
+    vibrate(YEAR_TICK_MS);
+    scheduleNotificationPulse();
+  } else {
+    stopNotificationPulse();
+    navigator.vibrate(0);
+  }
+});
 
 sensorReadout.textContent = protobjectSensorSupported || window.DeviceOrientationEvent
   ? 'listo para activar'
@@ -37,6 +99,12 @@ function normalizedAngle(angle) {
 
 function bandForAngle(angle) {
   return Math.min(YEAR_COUNT - 1, Math.floor(normalizedAngle(angle) / ANGLE_BAND));
+}
+
+// alpha y el "horizontal" de Protobject crecen en sentido antihorario; se invierten
+// para que girar el teléfono en sentido horario avance los años, como una brújula.
+function clockwiseAngle(angle) {
+  return normalizedAngle(360 - angle);
 }
 
 function circularDelta(angle, center) {
@@ -57,6 +125,7 @@ function updateCompass(angle, vertical, source) {
     if (Math.abs(delta) >= ANGLE_BAND / 2 + BAND_HYSTERESIS) {
       currentBand = candidateBand;
       bandChanged = true;
+      vibrate(YEAR_TICK_MS);
     }
   }
 
@@ -80,7 +149,7 @@ function handleProtobjectOrientation(data) {
     sensorTimeout = null;
   }
   activateButton.textContent = 'Brújula activa';
-  updateCompass(horizontal, Number(data.vertical), 'Protobject');
+  updateCompass(clockwiseAngle(horizontal), Number(data.vertical), 'Protobject');
 }
 
 function handleBrowserOrientation(event) {
@@ -90,7 +159,8 @@ function handleBrowserOrientation(event) {
   const alpha = event.alpha == null ? NaN : Number(event.alpha);
   const hasCompassHeading = Number.isFinite(compassHeading);
   const hasAbsoluteHeading = event.absolute === true && Number.isFinite(alpha);
-  const heading = hasCompassHeading ? compassHeading : alpha;
+  // webkitCompassHeading (iOS) ya crece en sentido horario; alpha no.
+  const heading = hasCompassHeading ? compassHeading : clockwiseAngle(alpha);
   if (!Number.isFinite(heading)) return;
 
   if (sensorTimeout !== null) {
@@ -211,6 +281,7 @@ Protobject.Core.onReceived((message) => {
     if (typeof message.selectedIso3 === 'string') {
       countrySelect.value = message.selectedIso3;
     }
+    if ('pulseIntervalMs' in message) updatePulseInterval(message.pulseIntervalMs);
   } else if (message.type === 'audio-warning') {
     connectionStatus.textContent = 'País seleccionado. Activa el audio una vez desde la visualización en el computador.';
   }
