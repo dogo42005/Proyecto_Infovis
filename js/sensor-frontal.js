@@ -1,6 +1,9 @@
 const statusElement = document.getElementById('estado');
 const readingElement = document.getElementById('lectura');
 
+statusElement.textContent = 'Solicitando acceso a la cámara e iniciando HandSensor…';
+Protobject.HandSensor.start(100, 0);
+
 Protobject.HandSensor.onData((data) => {
   const hand = data && Array.isArray(data.landmarks) ? data.landmarks[0] : null;
   const point = hand && hand.length > 8 ? hand[8] : null;
