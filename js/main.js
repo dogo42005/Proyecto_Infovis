@@ -239,7 +239,6 @@ async function main() {
     slider.value = anio;
     yearBadge.textContent = anio;
     refrescarIconos();
-    enviarEstadoControl();
   }
 
   function sensorIsFresh(sensor) {
@@ -373,19 +372,6 @@ async function main() {
   updateTouchSetup();
   setInterval(processTouch, 80);
 
-  function enviarEstadoControl() {
-    if (typeof Protobject === 'undefined') return;
-    // El teléfono vibra con el mismo ritmo que la sonificación que está
-    // sonando (país seleccionado o global); null = silencio, no vibra.
-    const audioKey = selectedIso3 || (globalSoundOn ? GLOBAL_KEY : null);
-    Protobject.Core.send({
-      type: 'visualization-state',
-      year: currentYear,
-      selectedIso3,
-      pulseIntervalMs: audioKey ? intervaloMs(audioKey) : null,
-    }).to('control.html');
-  }
-
   if (typeof Protobject !== 'undefined') {
     Protobject.Core.onReceived((message) => {
       if (!message || typeof message !== 'object') return;
@@ -415,21 +401,6 @@ async function main() {
           touchStatus.textContent = `Cenital: ${sensorIsFresh(latestTop) ? 'conectado' : 'esperando'} · frontal: ${valid ? 'conectado y detectando' : 'conectado, sin mano'}.`;
         }
         processTouch();
-      } else if (message.type === 'request-countries') {
-        Protobject.Core.send({
-          type: 'countries',
-          countries: Array.from(paisesInfo, ([iso3, info]) => ({ iso3, name: info.pais })),
-          selectedIso3,
-        }).to('control.html');
-      } else if (message.type === 'orientation-year' && Number.isInteger(message.year)) {
-        setYear(Math.max(2000, Math.min(2024, message.year)));
-      } else if (message.type === 'select-country' && typeof message.iso3 === 'string') {
-        if (message.iso3 === '') {
-          // "Todos los países" en el teléfono equivale al botón "Sonido global".
-          if (!globalSoundOn) activarSonidoGlobal().catch((err) => console.error(err));
-        } else if (paisesInfo.has(message.iso3)) {
-          seleccionarPais(message.iso3, false).catch((err) => console.error(err));
-        }
       }
     });
   }
@@ -572,12 +543,10 @@ async function main() {
   }
 
   function deseleccionar() {
-    const hadSelection = selectedIso3 !== null;
     if (selectedIso3) desactivarAudioPais(selectedIso3);
     selectedIso3 = null;
     actualizarEstadoVisualSeleccion();
     refrescarIconos();
-    if (hadSelection) enviarEstadoControl();
   }
 
   function pararSonidoGlobal() {
@@ -585,17 +554,14 @@ async function main() {
     globalSoundOn = false;
     desactivarAudioPais(GLOBAL_KEY);
     actualizarBotonGlobal();
-    enviarEstadoControl();
   }
 
   async function seleccionarPais(iso3, toggle = true) {
     if (!paisesInfo.has(iso3)) { deseleccionar(); return; }
-    let audioReady = true;
     try {
       await Tone.start();
     } catch (err) {
-      audioReady = false;
-      console.error('No se pudo activar el audio desde el control remoto:', err);
+      console.error('No se pudo activar el audio:', err);
     }
     pararSonidoGlobal();
     if (selectedIso3 === iso3) {
@@ -607,10 +573,6 @@ async function main() {
     activarAudioPais(iso3);
     actualizarEstadoVisualSeleccion();
     refrescarIconos();
-    enviarEstadoControl();
-    if (!audioReady && typeof Protobject !== 'undefined') {
-      Protobject.Core.send({ type: 'audio-warning' }).to('control.html');
-    }
   }
 
   async function activarSonidoGlobal() {
@@ -619,7 +581,6 @@ async function main() {
     globalSoundOn = true;
     actualizarBotonGlobal();
     activarAudioPais(GLOBAL_KEY);
-    enviarEstadoControl();
   }
 
   mapaSvg.addEventListener('click', (e) => {

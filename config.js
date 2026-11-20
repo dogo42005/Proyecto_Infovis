@@ -8,11 +8,6 @@ Protobject.initialize([
     debug: 'master',
   },
   {
-    name: 'Control del teléfono',
-    page: 'control.html',
-    debug: 'remote',
-  },
-  {
     name: 'Sensor cenital',
     page: 'sensor-cenital.html',
     debug: 'remote',
