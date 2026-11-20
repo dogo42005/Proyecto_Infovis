@@ -108,6 +108,11 @@ function codigoPais(props) {
 
 const ICON_SIZE = 6;
 const ICON_MAX = 50; // debe calzar con ICON_MAX en procesar_datos_mundial.py
+const YEAR_MIN = 2000;
+const YEAR_MAX = 2024;
+const YEAR_COUNT = YEAR_MAX - YEAR_MIN + 1;
+const TOUCH_RADIUS = 0.045;
+const SENSOR_WINDOW_MS = 250;
 
 async function main() {
   const [usoRows, iconosRows, puntosRows, promedioRows, paisesGeo] = await Promise.all([
@@ -199,6 +204,27 @@ async function main() {
 
   let currentYear = Number(slider.value);
   let selectedIso3 = null;
+  const calibrationPoints = new Map();
+  let hoverHeight = null;
+  let touchHeight = null;
+  let calibrationMode = false;
+  let lastCapturedYear = null;
+  let lastConfirmedYear = null;
+  let latestTop = null;
+  let latestSide = null;
+  const calibrationYear = document.getElementById('calibration-year');
+  const captureYearButton = document.getElementById('capture-year-btn');
+  const undoYearButton = document.getElementById('undo-year-btn');
+  const resetTouchButton = document.getElementById('reset-touch-btn');
+  const calibrateHoverButton = document.getElementById('calibrate-hover-btn');
+  const calibrateTouchButton = document.getElementById('calibrate-touch-btn');
+  const touchModeButton = document.getElementById('touch-mode-btn');
+  const touchProgress = document.getElementById('touch-progress');
+  const touchStatus = document.getElementById('touch-status');
+
+  for (let year = YEAR_MIN; year <= YEAR_MAX; year += 1) {
+    calibrationYear.add(new Option(String(year), String(year)));
+  }
 
   function refrescarIconos() {
     paisesInfo.forEach((info, iso3) => {
@@ -215,6 +241,137 @@ async function main() {
     refrescarIconos();
     enviarEstadoControl();
   }
+
+  function sensorIsFresh(sensor) {
+    return sensor && Date.now() - sensor.receivedAt <= SENSOR_WINDOW_MS;
+  }
+
+  function updateTouchSetup() {
+    const pointsReady = calibrationPoints.size === YEAR_COUNT;
+    const bothHeightsCaptured = Number.isFinite(hoverHeight) && Number.isFinite(touchHeight);
+    const heightsReady = bothHeightsCaptured && Math.abs(hoverHeight - touchHeight) >= 0.03;
+    const heightsLabel = heightsReady ? 'calibradas' : bothHeightsCaptured ? 'separación insuficiente' : 'sin calibrar';
+    touchProgress.textContent = `Puntos calibrados: ${calibrationPoints.size} de ${YEAR_COUNT} · alturas: ${heightsLabel} · modo: ${calibrationMode ? 'tocar' : 'entrenamiento'}`;
+    touchModeButton.disabled = !calibrationMode && !(pointsReady && heightsReady);
+    touchModeButton.textContent = calibrationMode ? 'Volver a entrenar' : 'Iniciar modo tocar';
+    const editingDisabled = calibrationMode;
+    calibrationYear.disabled = editingDisabled;
+    captureYearButton.disabled = editingDisabled;
+    undoYearButton.disabled = editingDisabled || calibrationPoints.size === 0;
+    resetTouchButton.disabled = editingDisabled;
+    calibrateHoverButton.disabled = editingDisabled;
+    calibrateTouchButton.disabled = editingDisabled;
+  }
+
+  function processTouch() {
+    if (!calibrationMode) return;
+    const topFresh = sensorIsFresh(latestTop);
+    const sideFresh = sensorIsFresh(latestSide);
+    if (!topFresh || !sideFresh || !latestTop.visible || !latestSide.visible) {
+      lastConfirmedYear = null;
+      const missing = [
+        !topFresh || !latestTop.visible ? 'cenital' : null,
+        !sideFresh || !latestSide.visible ? 'frontal' : null,
+      ].filter(Boolean);
+      touchStatus.textContent = missing.length
+        ? `Esperando dedo en sensor ${missing.join(' y ')}.`
+        : 'Buscando dedo en ambas cámaras…';
+      return;
+    }
+
+    let nearest = null;
+    let nearestDistance = Infinity;
+    calibrationPoints.forEach((point, year) => {
+      const distance = Math.hypot(latestTop.x - point.x, latestTop.y - point.y);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = year;
+      }
+    });
+
+    if (nearest === null || nearestDistance > TOUCH_RADIUS) {
+      lastConfirmedYear = null;
+      touchStatus.textContent = 'Dedo detectado fuera de los puntos entrenados.';
+      return;
+    }
+
+    const touching = touchHeight > hoverHeight
+      ? latestSide.z >= (hoverHeight + touchHeight) / 2
+      : latestSide.z <= (hoverHeight + touchHeight) / 2;
+    if (!touching) {
+      lastConfirmedYear = null;
+      touchStatus.textContent = `Sobre ${nearest} — acerca el dedo a la rueda para confirmar.`;
+      return;
+    }
+
+    touchStatus.textContent = `Toque detectado: ${nearest}.`;
+    if (lastConfirmedYear !== nearest) {
+      lastConfirmedYear = nearest;
+      setYear(nearest);
+    }
+  }
+
+  function captureCalibrationPoint() {
+    if (!sensorIsFresh(latestTop) || !latestTop.visible) {
+      touchStatus.textContent = 'No hay una lectura cenital reciente. Muestra la mano a esa cámara e inténtalo de nuevo.';
+      return;
+    }
+    const year = Number(calibrationYear.value);
+    calibrationPoints.set(year, { x: latestTop.x, y: latestTop.y });
+    lastCapturedYear = year;
+    touchStatus.textContent = `Punto ${year} guardado en x=${latestTop.x.toFixed(2)}, y=${latestTop.y.toFixed(2)}.`;
+    updateTouchSetup();
+  }
+
+  function captureCalibrationHeight(kind) {
+    if (!sensorIsFresh(latestSide) || !latestSide.visible) {
+      touchStatus.textContent = 'No hay una lectura frontal reciente. Muestra la mano a esa cámara e inténtalo de nuevo.';
+      return;
+    }
+    if (kind === 'hover') hoverHeight = latestSide.z;
+    else touchHeight = latestSide.z;
+    touchStatus.textContent = `Altura “${kind === 'hover' ? 'sin tocar' : 'en la mesa'}” guardada: ${latestSide.z.toFixed(2)}.`;
+    updateTouchSetup();
+  }
+
+  captureYearButton.addEventListener('click', captureCalibrationPoint);
+  undoYearButton.addEventListener('click', () => {
+    if (lastCapturedYear === null) return;
+    calibrationPoints.delete(lastCapturedYear);
+    touchStatus.textContent = `Se borró el último punto guardado (${lastCapturedYear}).`;
+    lastCapturedYear = null;
+    updateTouchSetup();
+  });
+  resetTouchButton.addEventListener('click', () => {
+    calibrationPoints.clear();
+    hoverHeight = null;
+    touchHeight = null;
+    lastCapturedYear = null;
+    lastConfirmedYear = null;
+    touchStatus.textContent = 'Calibración reiniciada.';
+    updateTouchSetup();
+  });
+  calibrateHoverButton.addEventListener('click', () => captureCalibrationHeight('hover'));
+  calibrateTouchButton.addEventListener('click', () => captureCalibrationHeight('touch'));
+  touchModeButton.addEventListener('click', () => {
+    if (calibrationMode) {
+      calibrationMode = false;
+      lastConfirmedYear = null;
+      touchStatus.textContent = 'Entrenamiento activo. Los puntos y alturas se conservaron.';
+    } else if (
+      calibrationPoints.size === YEAR_COUNT
+      && Number.isFinite(hoverHeight)
+      && Number.isFinite(touchHeight)
+      && Math.abs(hoverHeight - touchHeight) >= 0.03
+    ) {
+      calibrationMode = true;
+      lastConfirmedYear = null;
+      touchStatus.textContent = 'Modo tocar activo. Apoya el dedo sobre un año para seleccionarlo.';
+    }
+    updateTouchSetup();
+  });
+  updateTouchSetup();
+  setInterval(processTouch, 80);
 
   function enviarEstadoControl() {
     if (typeof Protobject === 'undefined') return;
@@ -233,7 +390,32 @@ async function main() {
     Protobject.Core.onReceived((message) => {
       if (!message || typeof message !== 'object') return;
 
-      if (message.type === 'request-countries') {
+      if (message.tipo === 'cenital') {
+        const valid = message.visible === true
+          && Number.isFinite(message.x) && message.x >= 0 && message.x <= 1
+          && Number.isFinite(message.y) && message.y >= 0 && message.y <= 1;
+        latestTop = {
+          visible: valid,
+          x: valid ? message.x : null,
+          y: valid ? message.y : null,
+          receivedAt: Date.now(),
+        };
+        if (!calibrationMode) {
+          touchStatus.textContent = `Cenital: ${valid ? 'conectado y detectando' : 'conectado, sin mano'} · frontal: ${sensorIsFresh(latestSide) ? 'conectado' : 'esperando'}.`;
+        }
+        processTouch();
+      } else if (message.tipo === 'frontal') {
+        const valid = message.visible === true && Number.isFinite(message.z) && message.z >= 0 && message.z <= 1;
+        latestSide = {
+          visible: valid,
+          z: valid ? message.z : null,
+          receivedAt: Date.now(),
+        };
+        if (!calibrationMode) {
+          touchStatus.textContent = `Cenital: ${sensorIsFresh(latestTop) ? 'conectado' : 'esperando'} · frontal: ${valid ? 'conectado y detectando' : 'conectado, sin mano'}.`;
+        }
+        processTouch();
+      } else if (message.type === 'request-countries') {
         Protobject.Core.send({
           type: 'countries',
           countries: Array.from(paisesInfo, ([iso3, info]) => ({ iso3, name: info.pais })),

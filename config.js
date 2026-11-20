@@ -12,4 +12,14 @@ Protobject.initialize([
     page: 'control.html',
     debug: 'remote',
   },
+  {
+    name: 'Sensor cenital',
+    page: 'sensor-cenital.html',
+    debug: 'remote',
+  },
+  {
+    name: 'Sensor frontal',
+    page: 'sensor-frontal.html',
+    debug: 'remote',
+  },
 ]);

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sensor frontal — Rueda táctil</title>
+  <style>
+    body { margin: 0; padding: 24px; background: #0b1220; color: #f2f3f5; font: 16px/1.5 Arial, sans-serif; }
+    main { max-width: 520px; margin: 0 auto; }
+    #estado { color: #aab3c5; }
+    #lectura { color: #4fd1c5; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Sensor frontal</h1>
+    <p>Fija este teléfono al costado de la rueda, con la cámara trasera mirando el área donde se apoya
+      el dedo. Debe ver de perfil la punta y la superficie.</p>
+    <p id="estado" role="status">Esperando permiso de cámara y detección de mano…</p>
+    <p id="lectura">Esperando lectura…</p>
+  </main>
+  <script src="https://app.protobject.com/framework/p.js"></script>
+  <script src="config.js"></script>
+  <script src="js/sensor-frontal.js" defer></script>
+</body>
+</html>

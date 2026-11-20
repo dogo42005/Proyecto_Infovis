@@ -36,6 +36,21 @@
     background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
     padding: 14px 18px; margin: 18px 0 10px;
   }
+  .touch-setup {
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; margin: 14px 0;
+  }
+  .touch-setup h2 { font-size: 1.05rem; margin: 0 0 8px; }
+  .touch-setup p { color: var(--text-secondary); font-size: 0.88rem; margin: 6px 0; }
+  .touch-setup-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+  .touch-setup select, .touch-setup button {
+    font: inherit; padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px;
+    background: #0b1220; color: var(--text-primary);
+  }
+  .touch-setup button { cursor: pointer; }
+  .touch-setup button:disabled { opacity: 0.5; cursor: not-allowed; }
+  #touch-mode-btn { border-color: var(--c-accent); color: var(--c-accent); }
+  #touch-status { min-height: 1.5em; }
   .controls .slider-wrap { display: flex; align-items: center; gap: 10px; flex: 1 1 260px; min-width: 220px; }
   .controls input[type=range] { flex: 1; accent-color: var(--c-accent); }
   .year-badge {
@@ -127,9 +142,29 @@
     para ver su dato exacto · <strong>clic en cualquier parte de un país</strong> lo selecciona: se ocultan
     los íconos de los demás y empieza a sonar su cacofonía de notificaciones (más rápida mientras más % de
     uso tiene) — un segundo clic lo deselecciona · <strong>Sonido global</strong> hace sonar todos los
-    países del mapa a la vez · <strong>Protobject</strong>: usa el botón + para vincular el teléfono; su
-    orientación cambia el año y su selector permite elegir un país, y «Todos los países» activa el sonido global.
+    países del mapa a la vez · <strong>Protobject</strong>: usa dos teléfonos y la rueda física calibrada
+    para seleccionar un año al tocarlo.
   </p>
+
+  <section class="touch-setup" aria-labelledby="touch-setup-title">
+    <h2 id="touch-setup-title">Rueda táctil de años</h2>
+    <p id="touch-status" role="status">Conecta los sensores cenital y frontal desde el botón + de Protobject.</p>
+    <p id="touch-progress">Puntos calibrados: 0 de 25 · alturas: sin calibrar · modo: entrenamiento</p>
+    <div class="touch-setup-controls">
+      <label for="calibration-year">Año a calibrar</label>
+      <select id="calibration-year"></select>
+      <button id="capture-year-btn" type="button">Añadir / actualizar punto</button>
+      <button id="undo-year-btn" type="button">Borrar último</button>
+      <button id="reset-touch-btn" type="button">Reiniciar calibración</button>
+    </div>
+    <div class="touch-setup-controls">
+      <button id="calibrate-hover-btn" type="button">Dedo arriba (sin tocar)</button>
+      <button id="calibrate-touch-btn" type="button">Dedo en la mesa</button>
+      <button id="touch-mode-btn" type="button" disabled>Iniciar modo tocar</button>
+    </div>
+    <p>En entrenamiento, pon el dedo sobre cada año de la rueda y guárdalo. Luego calibra las dos alturas.
+      La selección solo se confirma cuando las dos cámaras detectan el dedo y la frontal indica contacto.</p>
+  </section>
 
   <div class="mapa-card">
     <svg id="mapa-mundo" viewBox="0 0 960 480" preserveAspectRatio="xMidYMid meet">
