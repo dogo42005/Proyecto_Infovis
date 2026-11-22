@@ -111,8 +111,9 @@ const ICON_MAX = 50; // debe calzar con ICON_MAX en procesar_datos_mundial.py
 const YEAR_MIN = 2000;
 const YEAR_MAX = 2024;
 const YEAR_COUNT = YEAR_MAX - YEAR_MIN + 1;
-const TOUCH_RADIUS = 0.045;
+const TOUCH_RADIUS = 0.045; // radio de aceptación en coordenadas normalizadas (0–1)
 const SENSOR_WINDOW_MS = 250;
+const MIN_HEIGHT_SEPARATION = 0.03;
 
 async function main() {
   const [usoRows, iconosRows, puntosRows, promedioRows, paisesGeo] = await Promise.all([
@@ -248,7 +249,8 @@ async function main() {
   function updateTouchSetup() {
     const pointsReady = calibrationPoints.size === YEAR_COUNT;
     const bothHeightsCaptured = Number.isFinite(hoverHeight) && Number.isFinite(touchHeight);
-    const heightsReady = bothHeightsCaptured && Math.abs(hoverHeight - touchHeight) >= 0.03;
+    const heightsReady = bothHeightsCaptured
+      && Math.abs(hoverHeight - touchHeight) >= MIN_HEIGHT_SEPARATION;
     const heightsLabel = heightsReady ? 'calibradas' : bothHeightsCaptured ? 'separación insuficiente' : 'sin calibrar';
     touchProgress.textContent = `Puntos calibrados: ${calibrationPoints.size} de ${YEAR_COUNT} · alturas: ${heightsLabel} · modo: ${calibrationMode ? 'tocar' : 'entrenamiento'}`;
     touchModeButton.disabled = !calibrationMode && !(pointsReady && heightsReady);
@@ -361,7 +363,7 @@ async function main() {
       calibrationPoints.size === YEAR_COUNT
       && Number.isFinite(hoverHeight)
       && Number.isFinite(touchHeight)
-      && Math.abs(hoverHeight - touchHeight) >= 0.03
+      && Math.abs(hoverHeight - touchHeight) >= MIN_HEIGHT_SEPARATION
     ) {
       calibrationMode = true;
       lastConfirmedYear = null;

@@ -1,11 +1,12 @@
 const statusElement = document.getElementById('estado');
 const readingElement = document.getElementById('lectura');
 const startButton = document.getElementById('iniciar-sensor');
+const INDEX_FINGER_TIP = 8;
 let sensorStarted = false;
 
 Protobject.HandSensor.onData((data) => {
   const hand = data && Array.isArray(data.landmarks) ? data.landmarks[0] : null;
-  const point = hand && hand.length > 8 ? hand[8] : null;
+  const point = hand && hand.length > INDEX_FINGER_TIP ? hand[INDEX_FINGER_TIP] : null;
   if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
     statusElement.textContent = 'Cámara activa; no se detecta una mano.';
     readingElement.textContent = 'Sin dedo detectado';
@@ -31,13 +32,13 @@ startButton.addEventListener('click', () => {
   }
   if (sensorStarted) return;
 
-  try {
-    statusElement.textContent = 'Iniciando cámara; acepta el permiso si el navegador lo solicita…';
-    Protobject.HandSensor.start(100, 0);
-    Protobject.HandSensor.showPreview({ top: 60, left: 20, width: 320, height: 240 });
+  startButton.disabled = true;
+  statusElement.textContent = 'Solicitando acceso a la cámara trasera…';
+  startRearCameraPreview().then(() => {
     sensorStarted = true;
-    startButton.disabled = true;
-  } catch (error) {
+    statusElement.textContent = 'Cámara trasera activa; encuadra la rueda y la punta del dedo.';
+  }).catch((error) => {
+    startButton.disabled = false;
     statusElement.textContent = `No se pudo iniciar la cámara: ${error instanceof Error ? error.message : 'error desconocido'}`;
-  }
+  });
 });
