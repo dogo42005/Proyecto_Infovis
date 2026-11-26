@@ -8,7 +8,9 @@
       "PowerShell(New-Item -ItemType Directory -Force fisicalizacion)",
       "PowerShell(python -I \"C:\\\\Users\\\\djop4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-djop4-OneDrive---Universidad-Cat-lica-de-Chile-Escritorio-Repos-Proyecto-Infovis\\\\0bb9a1e2-698c-44d0-b4e6-88de7fb13fc3\\\\scratchpad\\\\plantilla.py\" \"fisicalizacion\\\\plantilla_anios_flecha.pdf\")",
       "PowerShell(node --check js/protobject-control.js)",
-      "PowerShell(node --check js/main.js)"
+      "PowerShell(node --check js/main.js)",
+      "PowerShell(python \"C:\\\\Users\\\\djop4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-djop4-OneDrive---Universidad-Cat-lica-de-Chile-Escritorio-Repos-Proyecto-Infovis\\\\0bb9a1e2-698c-44d0-b4e6-88de7fb13fc3\\\\scratchpad\\\\grafico_iconos.py\" data/procesada_mundial/mundial_iconos.csv fisicalizacion/grafico_iconos_por_anio.png fisicalizacion/iconos_por_anio.csv)",
+      "PowerShell(git pull --ff-only)"
     ]
   }
 }
