@@ -10,7 +10,10 @@
       "PowerShell(node --check js/protobject-control.js)",
       "PowerShell(node --check js/main.js)",
       "PowerShell(python \"C:\\\\Users\\\\djop4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-djop4-OneDrive---Universidad-Cat-lica-de-Chile-Escritorio-Repos-Proyecto-Infovis\\\\0bb9a1e2-698c-44d0-b4e6-88de7fb13fc3\\\\scratchpad\\\\grafico_iconos.py\" data/procesada_mundial/mundial_iconos.csv fisicalizacion/grafico_iconos_por_anio.png fisicalizacion/iconos_por_anio.csv)",
-      "PowerShell(git pull --ff-only)"
+      "PowerShell(git pull --ff-only)",
+      "PowerShell(try { \\(Get-Command pandoc -ErrorAction Stop\\).Source } catch { \"sin pandoc\" }; python -c \"import docx; print\\('python-docx ok'\\)\")",
+      "PowerShell(python \"C:\\\\Users\\\\djop4\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-djop4-OneDrive---Universidad-Cat-lica-de-Chile-Escritorio-Repos-Proyecto-Infovis\\\\0bb9a1e2-698c-44d0-b4e6-88de7fb13fc3\\\\scratchpad\\\\md_a_docx.py\" documentacion_entrega/E2/INFORME_E2.md documentacion_entrega/E2/INFORME_E2.docx)",
+      "PowerShell(python -c \"import docx; d=docx.Document\\('documentacion_entrega/E2/INFORME_E2.docx'\\); ps=d.paragraphs; print\\(len\\(ps\\),'parrafos',len\\(d.tables\\),'tablas',len\\(d.inline_shapes\\),'imagenes'\\); [print\\(p.style.name,'|',p.text[:90]\\) for p in ps[:40]]\")"
     ]
   }
 }
